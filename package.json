@@ -1,0 +1,41 @@
+{
+    "name": "node-global-key-listener",
+    "version": "0.0.0",
+    "description": "A module to listen to global key events",
+    "types": "build/index.d.ts",
+    "main": "build/index.js",
+    "files": [
+        "build/**/*"
+    ],
+    "scripts": {
+        "watch": "tsc -w",
+        "build": "tsc",
+        "test": "node build/test.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/LaunchMenu/node-global-key-listener.git"
+    },
+    "keywords": [
+        "key",
+        "listener",
+        "global",
+        "node"
+    ],
+    "author": "Tar van Krieken",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/LaunchMenu/node-global-key-listener/issues"
+    },
+    "homepage": "https://github.com/LaunchMenu/node-global-key-listener#readme",
+    "dependencies": {
+        "typescript": "^4.2.3"
+    },
+    "devDependencies": {
+        "@launchmenu/build-tools": "^0.0.5-alpha.19"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "gitHead": "3949c98b3ab4954d2b8351d98283fecca72b7e74"
+}

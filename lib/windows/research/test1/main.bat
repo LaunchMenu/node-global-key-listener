@@ -1,0 +1,1 @@
+"C:\MinGW\bin\c++.exe" main.cpp -o main.exe -static-libgcc -static-libstdc++ -lws2_32

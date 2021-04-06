@@ -1,18 +1,24 @@
-import Foundation
-import Darwin.C
-
-//Autoflush
-setbuf(stdout, NULL);
+//import Foundation
+import func Swift.print
+import func Swift.readLine
+import func Darwin.C.setbuf
+import func Darwin.C.fflush
+import var Darwin.C.stdout
+import var Darwin.C.NULL
 
 //print and wait for new data
-func haltPropogation(data: int){
-    print(data)
-    return Bool(readLine(strippingNewline: true)!)!
+func stdSendMessage(key: Int, oldResult: Bool) -> Bool {
+    print("\(key),\(oldResult)")
+    fflush(stdout)
+    guard let line: String = readLine(strippingNewline: true) else {return false}
+    return line=="1"
 }
 
-int i=0;
-bool result = false;
+var i: Int=0;
+var result: Bool = false;
 while(true){
-    i++;
-    result = stdSendMessage(i,result);
+    i+=1
+    result = stdSendMessage(key: i, oldResult: result)
 }
+
+

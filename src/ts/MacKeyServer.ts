@@ -1,3 +1,9 @@
+import { IGlobalKeyServer } from "./_types/IGlobalKeyServer";
+import {ChildProcessWithoutNullStreams, spawn} from "child_process";
+import { IGlobalKeyListener } from "./_types/IGlobalKeyListener";
+import { IGlobalKeyEvent } from "./_types/IGlobalKeyEvent";
+const sPath =  "../../bin/MacKeyServer";
+
 /*
  *  Summary:
  *    Mac Virtual keycodes
@@ -13,7 +19,7 @@
  *    in this case, pressing 'A' will generate a different virtual
  *    keycode.
  */
-var lookupVkeys = {
+export var macVKeys = {
     /* keycodes for keys that are dependent of keyboard layout*/
     0x00:{_nameRaw: "kVK_ANSI_A", name: "A"},
     0x0B:{_nameRaw: "kVK_ANSI_B", name: "B"},
@@ -130,48 +136,45 @@ var lookupVkeys = {
     0x7D:{_nameRaw: "kVK_DownArrow", name: "DownArrow"},
     0x7E:{_nameRaw: "kVK_UpArrow", name: "UpArrow"},
 
-}
+} as {[key:number]: {_nameRaw: string, name:string}};
 
-const spawn = require("child_process").spawn;
-class MacKeyServer {
+export class MacKeyServer implements IGlobalKeyServer {
+    private listeners: Array<IGlobalKeyListener>;
+    private proc: ChildProcessWithoutNullStreams;
+
     constructor(){
         this.listeners = [];
     }
-    addListener(listener){
+    addListener(listener: IGlobalKeyListener){
         this.listeners.push(listener);
         if(this.listeners.length==1){
-            this.start()
+            this.start();
         }
     }
-    removeListener(listener){
+    removeListener(listener: IGlobalKeyListener){
         const index = this.listeners.indexOf(listener);
         if(index!=-1){
             this.listeners.splice(index,1)
             if(this.listeners.length == 0){
                 setTimeout(()=>{
                     if (this.listeners.length == 0) this.stop();
-                },100)
+                },100);
             }
         }
     }
     start(){
-        this.proc = spawn("./detectKeys");
+        this.proc = spawn(sPath);
         this.proc.stdout.on("data", (data)=>{
             let event = this._getEventData(data);
             let stopPropagation = false;
-            let stopImmediatePropagation = false;
             for (let onKey of this.listeners){
                 //Forward event
-                const res = onKey(event)
+                const res = onKey(event);
                 
                 //Handle catch data
                 if (res instanceof Object){
                     if(res.stopPropagation) stopPropagation = true;
-                    if(res.stopImmediatePropagation){
-                        stopPropagation = true;
-                        stopImmediatePropagation = true;
-                        break;
-                    }
+                    if(res.stopImmediatePropagation) break;
                 } else if(res){
                     stopPropagation = true;
                 }
@@ -185,57 +188,22 @@ class MacKeyServer {
         this.proc.stdout.pause();
         this.proc.kill();
     }
-    _getEventData(data){
-        let sdata = data.toString().replace(/\s+/,"");
-        let arr = sdata.split(",");
-        let vkey = parseInt(arr[0]);
-        let key = lookupVkeys[vkey];
+    _getEventData(data: any){
+        let sData = data.toString().replace(/\s+/,"");
+        let arr = sData.split(",");
+        let vKey = parseInt(arr[0]);
+        let key = macVKeys[vKey];
         let keyDown = /DOWN/.test(arr[1]);
         let scanCode = parseInt(arr[2]);
         return {
-            vkey,
+            vKey,
             key,
             state: keyDown ? "DOWN": "UP",
             scanCode,
-            _raw: sdata
-        }
+            _raw: sData
+        } as IGlobalKeyEvent;
     }
 }
 
 
 
-var v = new MacKeyServer
-v.addListener(function(e){
-    console.log(e.key.name,e.state);
-})
-v.addListener(function(e){
-    if (e.key.name == "A"){
-        console.log("Halt A")
-        return true;
-    }
-})
-v.addListener(function(e){
-    if(e.key.name == "S"){
-        console.log("Halt S")
-        return {stopPropagation: true};
-    }
-})
-v.addListener(function(e){
-    if(e.key.name == "D"){
-        console.log("Halt D Immediate")
-        return {stopImmediatePropagation: true};
-    }
-    
-})
-v.addListener(function(e){
-    if(e.key.name == "D"){
-        console.log("This shouldn't call D")
-        return {stopImmediatePropagation: e.key.name == "D"};
-    }
-})
-
-v.addListener(function(e){
-    if(e.key.name == "B"){
-        v.stop()
-    }
-})

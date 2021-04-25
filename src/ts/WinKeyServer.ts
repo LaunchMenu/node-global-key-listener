@@ -1,6 +1,12 @@
+import { IGlobalKeyServer } from "./_types/IGlobalKeyServer";
+import {ChildProcessWithoutNullStreams, spawn} from "child_process";
+import { IGlobalKeyListener } from "./_types/IGlobalKeyListener";
+import { IGlobalKeyEvent } from "./_types/IGlobalKeyEvent";
+const sPath =  "../../bin/WinKeyServer.exe";
+
 //Keycodes taken from here:
 //https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-var lookupVkeys = {
+export var winVKeys = {
     0x30: {_nameRaw:"VK_0", name: "0"},
     0x31: {_nameRaw:"VK_1", name: "1"},
     0x32: {_nameRaw:"VK_2", name: "2"},
@@ -53,13 +59,10 @@ var lookupVkeys = {
     0x13: {_nameRaw:"VK_PAUSE", name: "PAUSE"},
     0x14: {_nameRaw:"VK_CAPITAL", name: "CAPSLOCK"},
     0x15: {_nameRaw:"VK_KANA", name: "KANA"},
-    0x15: {_nameRaw:"VK_HANGUEL", name: "HANGUEL"},
-    0x15: {_nameRaw:"VK_HANGUL", name: "HANGUL"},
     0x16: {_nameRaw:"VK_IME_ON", name: "IME_ON"},
     0x17: {_nameRaw:"VK_JUNJA", name: "JUNJA"},
     0x18: {_nameRaw:"VK_FINAL", name: "FINAL"},
     0x19: {_nameRaw:"VK_HANJA", name: "HANJA"},
-    0x19: {_nameRaw:"VK_KANJI", name: "KANJI"},
     0x1A: {_nameRaw:"VK_IME_OFF", name: "IME_OFF"},
     0x1B: {_nameRaw:"VK_ESCAPE", name: "ESCAPE"},
     0x1C: {_nameRaw:"VK_CONVERT", name: "CONVERT"},
@@ -176,20 +179,22 @@ var lookupVkeys = {
     0xFC: {_nameRaw:"VK_NONAME", name: "NONAME"},
     0xFD: {_nameRaw:"VK_PA1", name: "PA1"},
     0xFE: {_nameRaw:"VK_OEM_CLEAR", name: "OEM_CLEAR"}
-}
+} as {[key:number]: {_nameRaw: string, name:string}};
 
-const spawn = require("child_process").spawn;
-class WindowsKeyServer {
+export class WinKeyServer implements IGlobalKeyServer {
+    private listeners: Array<IGlobalKeyListener>;
+    private proc: ChildProcessWithoutNullStreams;
+    
     constructor(){
         this.listeners = [];
     }
-    addListener(listener){
+    addListener(listener: IGlobalKeyListener){
         this.listeners.push(listener);
         if(this.listeners.length==1){
             this.start()
         }
     }
-    removeListener(listener){
+    removeListener(listener: IGlobalKeyListener){
         const index = this.listeners.indexOf(listener);
         if(index!=-1){
             this.listeners.splice(index,1)
@@ -201,23 +206,18 @@ class WindowsKeyServer {
         }
     }
     start(){
-        this.proc = spawn("detectKeys.exe");
+        this.proc = spawn(sPath);
         this.proc.stdout.on("data", (data)=>{
             let event = this._getEventData(data);
             let stopPropagation = false;
-            let stopImmediatePropagation = false;
             for (let onKey of this.listeners){
                 //Forward event
-                const res = onKey(event)
+                const res = onKey(event);
                 
                 //Handle catch data
                 if (res instanceof Object){
                     if(res.stopPropagation) stopPropagation = true;
-                    if(res.stopImmediatePropagation){
-                        stopPropagation = true;
-                        stopImmediatePropagation = true;
-                        break;
-                    }
+                    if(res.stopImmediatePropagation) break;
                 } else if(res){
                     stopPropagation = true;
                 }
@@ -231,57 +231,19 @@ class WindowsKeyServer {
         this.proc.stdout.pause();
         this.proc.kill();
     }
-    _getEventData(data){
-        let sdata = data.toString().replace(/\s+/,"");
-        let arr = sdata.split(",");
-        let vkey = parseInt(arr[0]);
-        let key = lookupVkeys[vkey];
+    _getEventData(data: any): IGlobalKeyEvent {
+        let sData = data.toString().replace(/\s+/,"");
+        let arr = sData.split(",");
+        let vKey = parseInt(arr[0]);
+        let key = winVKeys[vKey];
         let keyDown = /DOWN/.test(arr[1]);
         let scanCode = parseInt(arr[2]);
         return {
-            vkey,
+            vKey,
             key,
             state: keyDown ? "DOWN": "UP",
             scanCode,
-            _raw: sdata
-        }
+            _raw: sData
+        } as IGlobalKeyEvent;
     }
 }
-
-
-
-var v = new WindowsKeyServer
-v.addListener(function(e){
-    console.log(e.key.name);
-})
-v.addListener(function(e){
-    if (e.key.name == "A"){
-        console.log("Halt A")
-        return true;
-    }
-})
-v.addListener(function(e){
-    if(e.key.name == "S"){
-        console.log("Halt S")
-        return {stopPropagation: true};
-    }
-})
-v.addListener(function(e){
-    if(e.key.name == "D"){
-        console.log("Halt D Immediate")
-        return {stopImmediatePropagation: true};
-    }
-    
-})
-v.addListener(function(e){
-    if(e.key.name == "D"){
-        console.log("This shouldn't call D")
-        return {stopImmediatePropagation: e.key.name == "D"};
-    }
-})
-
-v.addListener(function(e){
-    if(e.key.name == "B"){
-        v.stop()
-    }
-})

@@ -1,3 +1,8 @@
+//Change directory to make sure ./ is working correctly
+import process from "process"
+process.chdir("../../..")
+
+
 import { WinKeyServer } from "../WinKeyServer";
 
 var v = new WinKeyServer;

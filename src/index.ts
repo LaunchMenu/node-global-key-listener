@@ -15,21 +15,22 @@ import { IGlobalKeyServer } from "./ts/_types/IGlobalKeyServer"
  */
 export class GlobalKeyboardListener {
     /** The underlying keyServer used to listen and halt propagation of events */
-    protected keyServer: IGlobalKeyServer
-    protected listenerCount: number
+    protected keyServer: IGlobalKeyServer;
+    protected listenerCount: number;
 
     /** The underlying map of keys that are being held down */
-    private downMap: { [key: string]: boolean }
+    private downMap: { [key: string]: boolean };
 
     constructor(){
         this.listenerCount = 0;
+        this.downMap={};
         switch(os.platform()){
             case "win32":
-                this.keyServer = new WinKeyServer()
-                break
+                this.keyServer = new WinKeyServer();
+                break;
             case "darwin":
-                this.keyServer = new MacKeyServer()
-                break
+                this.keyServer = new MacKeyServer();
+                break;
         }
     }
 
@@ -38,9 +39,9 @@ export class GlobalKeyboardListener {
      * @param listener The listener to add to the global keyboard listener
      */
     public addListener(listener: IGlobalKeyListener){
-        if(this.listenerCount==0) this.init()
+        if(this.listenerCount==0) this.init();
         this.keyServer.addListener(listener);
-        this.listenerCount++
+        this.listenerCount++;
     }
     
     /**
@@ -48,9 +49,9 @@ export class GlobalKeyboardListener {
      * @param listener The listener to remove from the global keyboard listener
      */
     public removeListener(listener: IGlobalKeyListener){
-        this.keyServer.removeListener(listener)
-        this.listenerCount--
-        if(this.listenerCount==0) this.exit()
+        this.keyServer.removeListener(listener);
+        this.listenerCount--;
+        if(this.listenerCount==0) this.exit();
     }
 
     /** The underlying map of keys that are being held down */
@@ -71,16 +72,16 @@ export class GlobalKeyboardListener {
 
     /** Initialise / start the key server, initialising base listeners etc */
     protected init(){
-        this.keyServer.addListener(this.baseListener)
+        this.keyServer.addListener(this.baseListener);
     }
 
     /** Destroy / stop the key server, removing base listeners etc */
     protected exit(){
-        this.keyServer.removeListener(this.baseListener)
+        this.keyServer.removeListener(this.baseListener);
     }
 
     /** The following listener is used to monitor which keys are being held down */
-    private baseListener: IGlobalKeyListener = function(e){
+    private baseListener: IGlobalKeyListener = (e)=>{
         switch(e.state){
             case "DOWN":
                 this.downMap[e.key.name] = true

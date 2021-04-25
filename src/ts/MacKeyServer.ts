@@ -3,10 +3,10 @@ import {ChildProcessWithoutNullStreams, spawn} from "child_process";
 import { IGlobalKeyListener } from "./_types/IGlobalKeyListener";
 import { IGlobalKeyEvent } from "./_types/IGlobalKeyEvent";
 
-const sPath =  "../../../bin/MacKeyServer";
+const sPath =  "./bin/MacKeyServer";
 
-//import path from "path"
-//console.log(path.resolve(sPath));
+import path from "path"
+console.log(path.resolve(sPath));
 
 /*
  *  Summary:

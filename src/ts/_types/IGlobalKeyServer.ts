@@ -27,4 +27,10 @@ export type IGlobalKeyServer = {
    * @protected
    */
   stop: ()=>void,
+
+  /**
+   * Count of listeners
+   * @protected
+   */
+  count:()=>number
 }

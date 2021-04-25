@@ -2,7 +2,11 @@ import { IGlobalKeyServer } from "./_types/IGlobalKeyServer";
 import {ChildProcessWithoutNullStreams, spawn} from "child_process";
 import { IGlobalKeyListener } from "./_types/IGlobalKeyListener";
 import { IGlobalKeyEvent } from "./_types/IGlobalKeyEvent";
-const sPath =  "../../bin/MacKeyServer";
+
+const sPath =  "../../../bin/MacKeyServer";
+
+//import path from "path"
+//console.log(path.resolve(sPath));
 
 /*
  *  Summary:
@@ -139,7 +143,7 @@ export var macVKeys = {
 } as {[key:number]: {_nameRaw: string, name:string}};
 
 export class MacKeyServer implements IGlobalKeyServer {
-    private listeners: Array<IGlobalKeyListener>;
+    protected listeners: Array<IGlobalKeyListener>;
     private proc: ChildProcessWithoutNullStreams;
 
     constructor(){
@@ -163,6 +167,7 @@ export class MacKeyServer implements IGlobalKeyServer {
         }
     }
     start(){
+        console.log(sPath);
         this.proc = spawn(sPath);
         this.proc.stdout.on("data", (data)=>{
             let event = this._getEventData(data);
@@ -187,6 +192,9 @@ export class MacKeyServer implements IGlobalKeyServer {
     stop(){
         this.proc.stdout.pause();
         this.proc.kill();
+    }
+    count(){
+        return this.listeners.length;
     }
     _getEventData(data: any){
         let sData = data.toString().replace(/\s+/,"");

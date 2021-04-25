@@ -2,7 +2,7 @@ import { IGlobalKeyServer } from "./_types/IGlobalKeyServer";
 import {ChildProcessWithoutNullStreams, spawn} from "child_process";
 import { IGlobalKeyListener } from "./_types/IGlobalKeyListener";
 import { IGlobalKeyEvent } from "./_types/IGlobalKeyEvent";
-const sPath =  "../../bin/WinKeyServer.exe";
+const sPath =  "../../../bin/WinKeyServer.exe";
 
 //Keycodes taken from here:
 //https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
@@ -182,7 +182,7 @@ export var winVKeys = {
 } as {[key:number]: {_nameRaw: string, name:string}};
 
 export class WinKeyServer implements IGlobalKeyServer {
-    private listeners: Array<IGlobalKeyListener>;
+    protected listeners: Array<IGlobalKeyListener>;
     private proc: ChildProcessWithoutNullStreams;
     
     constructor(){
@@ -230,6 +230,9 @@ export class WinKeyServer implements IGlobalKeyServer {
     stop(){
         this.proc.stdout.pause();
         this.proc.kill();
+    }
+    count(){
+        return this.listeners.length;
     }
     _getEventData(data: any): IGlobalKeyEvent {
         let sData = data.toString().replace(/\s+/,"");

@@ -18,9 +18,10 @@ type IKeyFXX = "F1" | "F2" | "F3" | "F4" | "F5" | "F6" | "F7" | "F8" | "F9" | "F
 type IKeySym = "EQUALS" | "MINUS" | "SQUARE BRACKET OPEN" | "SQUARE BRACKET CLOSE" | "SEMICOLON" | "QUOTE" | "BACKSLASH" | "COMMA" | "DOT" | "FORWARD SLASH"
 type IKeyButtons = "SPACE" | "BACKSPACE" | "RETURN" | "ESCAPE" | "BACKTICK" | "SECTION" | "DELETE" | "TAB"
 type IKeySpecials = IKeyFXX | IKeySym | IKeyButtons
+type IKeyRareUse = "INS" | "NUMPAD CLEAR" | "PRINT SCREEN"
 
 type IScrollKeys = "PAGE UP" | "PAGE DOWN" | "HOME" | "END"
 
 type IKeyMouseButton = "MOUSE LEFT" | "MOUSE RIGHT" | "MOUSE MIDDLE" | "MOUSE X1" | "MOUSE X2"
 
-export type IGlobalKey = IUndefined | IKeyAlphaNumeric | IKeyArrows | IKeyModifiers | IKeyMouseButton | IKeySpecials | IKeyNumpad | IScrollKeys
+export type IGlobalKey = IUndefined | IKeyAlphaNumeric | IKeyArrows | IKeyModifiers | IKeyMouseButton | IKeySpecials | IKeyNumpad | IScrollKeys | IKeyRareUse

@@ -64,7 +64,7 @@ export const MacGlobalKeyLookup: IGlobalKeyLookup = {
     0x41:{_nameRaw: "kVK_ANSI_KeypadDecimal"  , name: "KeypadDecimal"  , standardName: "NUMPAD DOT"},
     0x43:{_nameRaw: "kVK_ANSI_KeypadMultiply" , name: "KeypadMultiply" , standardName: "NUMPAD MULTIPLY"},
     0x45:{_nameRaw: "kVK_ANSI_KeypadPlus"     , name: "KeypadPlus"     , standardName: "NUMPAD PLUS"},
-    0x47:{_nameRaw: "kVK_ANSI_KeypadClear"    , name: "KeypadClear"    , standardName: ""},
+    0x47:{_nameRaw: "kVK_ANSI_KeypadClear"    , name: "KeypadClear"    , standardName: "NUMPAD CLEAR"},
     0x4B:{_nameRaw: "kVK_ANSI_KeypadDivide"   , name: "KeypadDivide"   , standardName: "NUMPAD DIVIDE"},
     0x4C:{_nameRaw: "kVK_ANSI_KeypadEnter"    , name: "KeypadEnter"    , standardName: "NUMPAD RETURN"},
     0x4E:{_nameRaw: "kVK_ANSI_KeypadMinus"    , name: "KeypadMinus"    , standardName: "NUMPAD MINUS"},

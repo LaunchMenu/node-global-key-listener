@@ -48,6 +48,18 @@ import var Darwin.C.NULL
 //Import of CGEvent, CGEventTapProxy, CGEventType, CGEvent, ...
 import Foundation
 
+let VK_LCOMMAND : Int64 = 0x37;
+let VK_RCOMMAND : Int64 = 0x36;
+let VK_LSHIFT   : Int64 = 0x38;
+let VK_RSHIFT   : Int64 = 0x3C;
+let VK_LALT     : Int64 = 0x3A;
+let VK_RALT     : Int64 = 0x3D;
+let VK_LCTRL    : Int64 = 0x3B;
+let VK_RCTRL    : Int64 = 0x3E;
+let VK_CAPSLOCK : Int64 = 0x39;
+let VK_FN       : Int64 = 0x3F;
+let VK_HELP     : Int64 = 0x12;
+
 /**
  * haltPropogation
  * Communicates key information with the calling process to identify whether the key event should
@@ -64,6 +76,26 @@ func haltPropogation(key: Int64, isDown: Bool) -> Bool {
     guard let line: String = readLine(strippingNewline: true) else {return false}
     return line=="1"
 }
+func getModifierDownState(event: CGEvent, keyCode: Int64) -> Bool {
+  switch keyCode {
+    case VK_LCOMMAND, VK_RCOMMAND:
+      return event.flags.contains(.maskCommand);
+    case VK_LSHIFT, VK_RSHIFT:
+      return event.flags.contains(.maskShift);
+    case VK_LCTRL, VK_RCTRL:
+      return event.flags.contains(.maskControl);
+    case VK_LALT, VK_RALT:
+      return event.flags.contains(.maskAlternate);
+    case VK_CAPSLOCK:
+      return event.flags.contains(.maskAlphaShift);
+    case VK_FN:
+      return event.flags.contains(.maskSecondaryFn);
+    case VK_HELP:
+      return event.flags.contains(.maskHelp);
+    default:
+      return false;
+  }
+}
 
 /**
  * myCGEventTapCallback
@@ -78,12 +110,20 @@ func myCGEventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEv
         if(haltPropogation(key: keyCode, isDown: type == .keyDown)){
             return nil
         }
+    } else if [.flagsChanged].contains(type){
+        //keycode is still available
+        let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+        let downState = getModifierDownState(event: event, keyCode: keyCode);
+        if(haltPropogation(key: keyCode, isDown: downState)){  
+            return nil
+        }
     }
     return Unmanaged.passRetained(event)
 }
 
 //Define an event mask to quickly narrow down to the events we desire to capture
-let eventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue)
+let eventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue) | (1 << CGEventType.flagsChanged.rawValue)
+
 
 //Create the event tap using [CGEvent.tapCreate](https://developer.apple.com/documentation/coregraphics/cgevent/1454426-tapcreate)
 guard let eventTap = CGEvent.tapCreate(tap: .cgSessionEventTap,

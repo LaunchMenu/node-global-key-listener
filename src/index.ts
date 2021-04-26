@@ -2,7 +2,10 @@
 import os from "os"
 import { MacKeyServer } from "./ts/MacKeyServer"
 import { WinKeyServer } from "./ts/WinKeyServer"
+import { IGlobalKey } from "./ts/_types/IGlobalKey"
+import { IGlobalKeyDownMap } from "./ts/_types/IGlobalKeyDownMap"
 import { IGlobalKeyListener } from "./ts/_types/IGlobalKeyListener"
+import { IGlobalKeyListenerRaw } from "./ts/_types/IGlobalKeyListenerRaw"
 import { IGlobalKeyServer } from "./ts/_types/IGlobalKeyServer"
 
 
@@ -16,20 +19,20 @@ import { IGlobalKeyServer } from "./ts/_types/IGlobalKeyServer"
 export class GlobalKeyboardListener {
     /** The underlying keyServer used to listen and halt propagation of events */
     protected keyServer: IGlobalKeyServer;
-    protected listenerCount: number;
+    protected listeners: Array<IGlobalKeyListener>;
 
     /** The underlying map of keys that are being held down */
-    private downMap: { [key: string]: boolean };
+    private readonly isDown: IGlobalKeyDownMap;
 
     constructor(){
-        this.listenerCount = 0;
-        this.downMap={};
+        this.listeners = [];
+        this.isDown={};
         switch(os.platform()){
             case "win32":
-                this.keyServer = new WinKeyServer();
+                this.keyServer = new WinKeyServer(this.baseListener);
                 break;
             case "darwin":
-                this.keyServer = new MacKeyServer();
+                this.keyServer = new MacKeyServer(this.baseListener);
                 break;
         }
     }
@@ -39,9 +42,10 @@ export class GlobalKeyboardListener {
      * @param listener The listener to add to the global keyboard listener
      */
     public addListener(listener: IGlobalKeyListener){
-        if(this.listenerCount==0) this.init();
-        this.keyServer.addListener(listener);
-        this.listenerCount++;
+        this.listeners.push(listener);
+        if(this.listeners.length==1){
+            this.start();
+        }
     }
     
     /**
@@ -49,46 +53,58 @@ export class GlobalKeyboardListener {
      * @param listener The listener to remove from the global keyboard listener
      */
     public removeListener(listener: IGlobalKeyListener){
-        this.keyServer.removeListener(listener);
-        this.listenerCount--;
-        if(this.listenerCount==0) this.exit();
+        const index = this.listeners.indexOf(listener);
+        if(index!=-1){
+            this.listeners.splice(index,1)
+            if(this.listeners.length == 0){
+                setTimeout(()=>{
+                    if (this.listeners.length == 0) this.stop();
+                },100);
+            }
+        }
     }
 
-    /** The underlying map of keys that are being held down */
-    public isDown(key: string): boolean {
-        return !!this.downMap[key];
+    public kill(){
+        this.listeners = [];
+        this.stop();
     }
 
     /** Start the key server */
-    public start(){
+    protected start(){
         this.keyServer.start();
-        if(this.listenerCount==0 && this.keyServer.count()==0) this.init();
     }
 
     /** Stop the key server */
-    public stop(){
+    protected stop(){
         this.keyServer.stop();
     }
 
-    /** Initialise / start the key server, initialising base listeners etc */
-    protected init(){
-        this.keyServer.addListener(this.baseListener);
-    }
-
-    /** Destroy / stop the key server, removing base listeners etc */
-    protected exit(){
-        this.keyServer.removeListener(this.baseListener);
-    }
-
     /** The following listener is used to monitor which keys are being held down */
-    private baseListener: IGlobalKeyListener = (e)=>{
-        switch(e.state){
+    private baseListener: IGlobalKeyListenerRaw = (event)=>{
+        switch(event.state){
             case "DOWN":
-                this.downMap[e.key.name] = true
+                this.isDown[event.name] = true
                 break
             case "UP":
-                this.downMap[e.key.name] = false
+                this.isDown[event.name] = false
                 break
         }
+
+
+        let stopPropagation = false;
+        for (let onKey of this.listeners){
+            //Forward event
+            const res = onKey(event, this.isDown);
+            
+            //Handle catch data
+            if (res instanceof Object){
+                if(res.stopPropagation) stopPropagation = true;
+                if(res.stopImmediatePropagation) break;
+            } else if(res){
+                stopPropagation = true;
+            }
+        }
+
+        return stopPropagation;
     }
 }

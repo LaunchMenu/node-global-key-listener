@@ -3,7 +3,7 @@ import {ChildProcessWithoutNullStreams, spawn} from "child_process";
 import { IGlobalKeyEvent } from "./_types/IGlobalKeyEvent";
 import { IGlobalKeyListenerRaw } from "./_types/IGlobalKeyListenerRaw";
 import { WinGlobalKeyLookup } from "./_data/WinGlobalKeyLookup";
-const sPath =  "../../../bin/WinKeyServer.exe";
+const sPath =  "./bin/WinKeyServer.exe";
 
 /** Use this class to listen to key events on Windows OS */
 export class WinKeyServer implements IGlobalKeyServer {

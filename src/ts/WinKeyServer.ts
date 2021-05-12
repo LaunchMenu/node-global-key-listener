@@ -3,27 +3,51 @@ import {ChildProcessWithoutNullStreams, spawn} from "child_process";
 import {IGlobalKeyEvent} from "./_types/IGlobalKeyEvent";
 import {IGlobalKeyListenerRaw} from "./_types/IGlobalKeyListenerRaw";
 import {WinGlobalKeyLookup} from "./_data/WinGlobalKeyLookup";
-const sPath = "./bin/WinKeyServer.exe";
+import Path from "path";
+import {IWindowsConfig} from "./_types/IWindowsConfig";
+const sPath = "../../bin/WinKeyServer.exe";
 
 /** Use this class to listen to key events on Windows OS */
 export class WinKeyServer implements IGlobalKeyServer {
     protected listener: IGlobalKeyListenerRaw;
     private proc: ChildProcessWithoutNullStreams;
 
+    // Meta release handling
+    protected captureWindowsKeyUp: boolean;
+    protected isMetaDown = false;
+    protected captureMetaUp = false;
+
     /**
      * Creates a new key server for windows
      * @param listener The callback to report key events to
+     * @param windowsConfig The optional windows configuration
      */
-    public constructor(listener: IGlobalKeyListenerRaw) {
+    public constructor(
+        listener: IGlobalKeyListenerRaw,
+        {captureWindowsKeyUp = true}: IWindowsConfig = {}
+    ) {
         this.listener = listener;
+        this.captureWindowsKeyUp = captureWindowsKeyUp;
     }
 
     /** Start the Key server and listen for keypresses */
     public start() {
-        this.proc = spawn(sPath);
+        this.proc = spawn(Path.join(__dirname, sPath));
         this.proc.stdout.on("data", data => {
             let event = this._getEventData(data);
             let stopPropagation = !!this.listener(event);
+
+            if (this.captureWindowsKeyUp) {
+                const isMeta = event.name == "LEFT META" || event.name == "RIGHT META";
+                if (isMeta) {
+                    this.isMetaDown = event.state == "DOWN";
+                    if (!this.isMetaDown && this.captureMetaUp) {
+                        stopPropagation = true;
+                        this.captureMetaUp = false;
+                    }
+                }
+                if (stopPropagation && this.isMetaDown) this.captureMetaUp = true;
+            }
 
             //If we want to halt propagation send 1, else send 0
             this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");

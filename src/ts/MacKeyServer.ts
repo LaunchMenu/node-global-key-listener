@@ -3,7 +3,8 @@ import {ChildProcessWithoutNullStreams, spawn} from "child_process";
 import {IGlobalKeyListenerRaw} from "./_types/IGlobalKeyListenerRaw";
 import {IGlobalKeyEvent} from "./_types/IGlobalKeyEvent";
 import {MacGlobalKeyLookup} from "./_data/MacGlobalKeyLookup";
-const sPath = "./bin/MacKeyServer";
+import Path from "path";
+const sPath = "../../bin/MacKeyServer";
 
 /** Use this class to listen to key events on Mac OS */
 export class MacKeyServer implements IGlobalKeyServer {
@@ -20,7 +21,7 @@ export class MacKeyServer implements IGlobalKeyServer {
 
     /** Start the Key server and listen for keypresses */
     public start() {
-        this.proc = spawn(sPath);
+        this.proc = spawn(Path.join(__dirname, sPath));
         this.proc.stdout.on("data", data => {
             let event = this._getEventData(data);
             let stopPropagation = !!this.listener(event);

@@ -1,6 +1,7 @@
 import os from "os";
 import {MacKeyServer} from "./ts/MacKeyServer";
 import {WinKeyServer} from "./ts/WinKeyServer";
+import {IConfig} from "./ts/_types/IConfig";
 import {IGlobalKeyDownMap} from "./ts/_types/IGlobalKeyDownMap";
 import {IGlobalKeyListener} from "./ts/_types/IGlobalKeyListener";
 import {IGlobalKeyListenerRaw} from "./ts/_types/IGlobalKeyListenerRaw";
@@ -9,6 +10,9 @@ import {IGlobalKeyServer} from "./ts/_types/IGlobalKeyServer";
 export * from "./ts/_types/IGlobalKeyListener";
 export * from "./ts/_types/IGlobalKeyEvent";
 export * from "./ts/_types/IGlobalKey";
+export * from "./ts/_types/IGlobalKeyDownMap";
+export * from "./ts/_types/IWindowsConfig";
+export * from "./ts/_types/IConfig";
 
 /**
  * A cross-platform global keyboard listener. Ideal for setting up global keyboard shortcuts
@@ -31,13 +35,14 @@ export class GlobalKeyboardListener {
 
     /**
      * Creates a new keyboard listener
+     * @param config The optional configuration for the key listener
      */
-    public constructor() {
+    public constructor(config: IConfig = {}) {
         this.listeners = [];
         this.isDown = {};
         switch (os.platform()) {
             case "win32":
-                this.keyServer = new WinKeyServer(this.baseListener);
+                this.keyServer = new WinKeyServer(this.baseListener, config.windows);
                 break;
             case "darwin":
                 this.keyServer = new MacKeyServer(this.baseListener);

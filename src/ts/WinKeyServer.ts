@@ -1,10 +1,10 @@
-import {IGlobalKeyServer} from "./_types/IGlobalKeyServer";
-import {ChildProcessWithoutNullStreams, spawn} from "child_process";
-import {IGlobalKeyEvent} from "./_types/IGlobalKeyEvent";
-import {IGlobalKeyListenerRaw} from "./_types/IGlobalKeyListenerRaw";
-import {WinGlobalKeyLookup} from "./_data/WinGlobalKeyLookup";
+import { IGlobalKeyServer } from "./_types/IGlobalKeyServer";
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
+import { IGlobalKeyEvent } from "./_types/IGlobalKeyEvent";
+import { IGlobalKeyListenerRaw } from "./_types/IGlobalKeyListenerRaw";
+import { WinGlobalKeyLookup } from "./_data/WinGlobalKeyLookup";
 import Path from "path";
-import {IWindowsConfig} from "./_types/IWindowsConfig";
+import { IWindowsConfig } from "./_types/IWindowsConfig";
 const sPath = "../../bin/WinKeyServer.exe";
 
 /** Use this class to listen to key events on Windows OS */
@@ -16,6 +16,7 @@ export class WinKeyServer implements IGlobalKeyServer {
     protected captureWindowsKeyUp: boolean;
     protected isMetaDown = false;
     protected captureMetaUp = false;
+    protected config: IWindowsConfig;
 
     /**
      * Creates a new key server for windows
@@ -24,30 +25,21 @@ export class WinKeyServer implements IGlobalKeyServer {
      */
     public constructor(
         listener: IGlobalKeyListenerRaw,
-        {captureWindowsKeyUp = true}: IWindowsConfig = {}
+        config: IWindowsConfig = {}
     ) {
         this.listener = listener;
-        this.captureWindowsKeyUp = captureWindowsKeyUp;
+        this.config = config;
     }
 
     /** Start the Key server and listen for keypresses */
     public start() {
         this.proc = spawn(Path.join(__dirname, sPath));
+        if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));
+        if (this.config.onError) this.proc.on("close", this.config.onError);
+
         this.proc.stdout.on("data", data => {
             let event = this._getEventData(data);
             let stopPropagation = !!this.listener(event);
-
-            if (this.captureWindowsKeyUp) {
-                const isMeta = event.name == "LEFT META" || event.name == "RIGHT META";
-                if (isMeta) {
-                    this.isMetaDown = event.state == "DOWN";
-                    if (!this.isMetaDown && this.captureMetaUp) {
-                        stopPropagation = true;
-                        this.captureMetaUp = false;
-                    }
-                }
-                if (stopPropagation && this.isMetaDown) this.captureMetaUp = true;
-            }
 
             //If we want to halt propagation send 1, else send 0
             this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");

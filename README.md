@@ -2,7 +2,7 @@
 
 ## Description
 
-A simple, cross-platform NodeJS package which can be used to listen to and capture keyboard events.
+A simple, cross-platform NodeJS package which can be used to listen to and capture keyboard events. 
 
 Compatibility table:
 
@@ -11,6 +11,8 @@ Compatibility table:
 | Windows | True            | Win10         |
 | Mac     | True            | Mac OS Mojave |
 | Linux   | Not implemented | N/A           |
+
+This keyboard listener was originally made for the productivity application, [LaunchMenu](http://launchmenu.github.io/). 
 
 ## Usage
 
@@ -60,6 +62,14 @@ v.addListener(calledOnce);
 */
 ```
 
+## Installation
+
+To install this npm package call:
+
+```
+npm install node-global-key-listener
+```
+
 ## Is this the right package for you?
 
 NodeJS has various packages for listening to keyboard events raised in the operating system. We may not have created the best package for you, please use the below descriptions to aid you in making your decision:
@@ -105,6 +115,41 @@ NodeJS has various packages for listening to keyboard events raised in the opera
 
 * Most execution occurs out-of-process. Our package executes and runs a seperate key server which NodeJS interfaces with over stdio. This means that this application might require permission to run depending on your anti-virus system.
 
+## Developement
+
+If modifying the typescript code you will have to run the following command in a terminal in the root directory of this package:
+
+```
+npm run watch
+```
+
+This will cause the application to recompile the typescript whenever the source code is changed. If you are making a change to an application for a single system, please consider adding these changes to both keyboard servers if possible. Generally we will work on both simultaneiously however we know this is not always possible.
+
+### Modifying the compiled binaries
+
+To modify the Windows `C++` or Mac `Swift` source code please compile these applications before testing with:
+
+#### Pre-requisites
+
+##### Windows
+
+This project is configured to use [mingw](https://sourceforge.net/projects/mingw/), and thus this should be installed before compiling the source code.
+
+#### Compiling the binary code
+
+To compile the source code of these applications use the below command line commands respective to the system you are working on.
+
+##### Windows
+
+```
+npm run compile-win
+```
+
+##### Mac
+
+```
+npm run compile-mac
+```
 
 
 

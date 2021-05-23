@@ -1,5 +1,7 @@
 /** Key server configuration that's windows specific */
 export type IWindowsConfig = {
-    /** Whether they windows key up event should be captured, if windows + some key was captured before before releasing the windows key */
-    captureWindowsKeyUp?: boolean;
+    /** A callback that's triggered with additional information from the keyhandler */
+    onInfo?: { (data: string): void }
+    /** A callback that's triggered with additional information from the keyhandler */
+    onError?: { (errorCode: number): void }
 };

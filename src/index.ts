@@ -1,11 +1,11 @@
 import os from "os";
-import {MacKeyServer} from "./ts/MacKeyServer";
-import {WinKeyServer} from "./ts/WinKeyServer";
-import {IConfig} from "./ts/_types/IConfig";
-import {IGlobalKeyDownMap} from "./ts/_types/IGlobalKeyDownMap";
-import {IGlobalKeyListener} from "./ts/_types/IGlobalKeyListener";
-import {IGlobalKeyListenerRaw} from "./ts/_types/IGlobalKeyListenerRaw";
-import {IGlobalKeyServer} from "./ts/_types/IGlobalKeyServer";
+import { MacKeyServer } from "./ts/MacKeyServer";
+import { WinKeyServer } from "./ts/WinKeyServer";
+import { IConfig } from "./ts/_types/IConfig";
+import { IGlobalKeyDownMap } from "./ts/_types/IGlobalKeyDownMap";
+import { IGlobalKeyListener } from "./ts/_types/IGlobalKeyListener";
+import { IGlobalKeyListenerRaw } from "./ts/_types/IGlobalKeyListenerRaw";
+import { IGlobalKeyServer } from "./ts/_types/IGlobalKeyServer";
 
 export * from "./ts/_types/IGlobalKeyListener";
 export * from "./ts/_types/IGlobalKeyEvent";
@@ -45,7 +45,7 @@ export class GlobalKeyboardListener {
                 this.keyServer = new WinKeyServer(this.baseListener, config.windows);
                 break;
             case "darwin":
-                this.keyServer = new MacKeyServer(this.baseListener);
+                this.keyServer = new MacKeyServer(this.baseListener, config.mac);
                 break;
             default:
                 throw Error("This OS is not supported");

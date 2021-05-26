@@ -1,11 +1,11 @@
 import os from "os";
-import { MacKeyServer } from "./ts/MacKeyServer";
-import { WinKeyServer } from "./ts/WinKeyServer";
-import { IConfig } from "./ts/_types/IConfig";
-import { IGlobalKeyDownMap } from "./ts/_types/IGlobalKeyDownMap";
-import { IGlobalKeyListener } from "./ts/_types/IGlobalKeyListener";
-import { IGlobalKeyListenerRaw } from "./ts/_types/IGlobalKeyListenerRaw";
-import { IGlobalKeyServer } from "./ts/_types/IGlobalKeyServer";
+import {MacKeyServer} from "./ts/MacKeyServer";
+import {WinKeyServer} from "./ts/WinKeyServer";
+import {IConfig} from "./ts/_types/IConfig";
+import {IGlobalKeyDownMap} from "./ts/_types/IGlobalKeyDownMap";
+import {IGlobalKeyListener} from "./ts/_types/IGlobalKeyListener";
+import {IGlobalKeyListenerRaw} from "./ts/_types/IGlobalKeyListenerRaw";
+import {IGlobalKeyServer} from "./ts/_types/IGlobalKeyServer";
 
 export * from "./ts/_types/IGlobalKeyListener";
 export * from "./ts/_types/IGlobalKeyEvent";
@@ -25,6 +25,7 @@ export class GlobalKeyboardListener {
     /** The underlying keyServer used to listen and halt propagation of events */
     protected keyServer: IGlobalKeyServer;
     protected listeners: Array<IGlobalKeyListener>;
+    protected config: IConfig;
 
     /** Whether the server is currently running */
     protected isRunning = false;
@@ -40,6 +41,7 @@ export class GlobalKeyboardListener {
     public constructor(config: IConfig = {}) {
         this.listeners = [];
         this.isDown = {};
+        this.config = config;
         switch (os.platform()) {
             case "win32":
                 this.keyServer = new WinKeyServer(this.baseListener, config.windows);
@@ -73,7 +75,12 @@ export class GlobalKeyboardListener {
         if (index != -1) {
             this.listeners.splice(index, 1);
             if (this.listeners.length == 0) {
-                this.stopTimeoutID = setTimeout(() => this.stop(), 100) as any;
+                if (this.config.disposeDelay == -1) this.stop();
+                else
+                    this.stopTimeoutID = setTimeout(
+                        () => this.stop(),
+                        this.config.disposeDelay ?? 100
+                    ) as any;
             }
         }
     }
@@ -98,13 +105,15 @@ export class GlobalKeyboardListener {
 
     /** The following listener is used to monitor which keys are being held down */
     private baseListener: IGlobalKeyListenerRaw = event => {
-        switch (event.state) {
-            case "DOWN":
-                this.isDown[event.name] = true;
-                break;
-            case "UP":
-                this.isDown[event.name] = false;
-                break;
+        if (event.name) {
+            switch (event.state) {
+                case "DOWN":
+                    this.isDown[event.name] = true;
+                    break;
+                case "UP":
+                    this.isDown[event.name] = false;
+                    break;
+            }
         }
 
         let stopPropagation = false;

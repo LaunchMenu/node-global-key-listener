@@ -2,8 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <thread>
 #include <string>
 #include <cstddef>
+#include <ctime>
+#include <windows.h>
+
+//How long to wait before timing out a key response
+int timeoutTime = 30;
 
 /**
  * HEADERS
@@ -22,6 +28,8 @@ void printErr(const char *str);
 std::string awaitLine();
 std::string getString();
 void fakeKey(DWORD iKeyEventF, WORD vkVirtualKey);
+DWORD WINAPI timeoutLoop(LPVOID lpParam);
+DWORD WINAPI checkInputLoop(LPVOID lpParam);
 
 struct data
 {
@@ -43,6 +51,10 @@ int main(int argc, char **argv)
     if (!hInstance)
         return 1;
 
+    //Create threads to deal with input
+    HANDLE timeoutThread = CreateThread(NULL, 0, timeoutLoop, NULL, 0, NULL);
+    HANDLE inputThread = CreateThread(NULL, 0, checkInputLoop, NULL, 0, NULL);
+
     //Hook to global keyboard events
     hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)KeyboardEvent, hInstance, 0);
 
@@ -51,6 +63,10 @@ int main(int argc, char **argv)
 
     //Unhook from global keyboard events
     UnhookWindowsHookEx(hKeyboardHook);
+
+    //Dispose the threads
+    CloseHandle(timeoutThread);
+    CloseHandle(inputThread);
 
     return 0;
 }
@@ -125,47 +141,79 @@ void fakeKey(DWORD iKeyEventF, WORD vkVirtualKey)
     SendInput(1, &inputFix, sizeof(inputFix));
 }
 
-bool haltPropogation(KBDLLHOOKSTRUCT key, KeyState keyState)
-{
-    //Print to out
-    printf("%i,%s,%i\n", key.vkCode, (keyState == down ? "DOWN" : "UP"), key.scanCode);
-    fflush(stdout);
-
-    std::string line = awaitLine();
-    return line == "1";
-}
-
 void printErr(const char str[])
 {
     fprintf(stderr, str);
     fflush(stderr);
 }
 
-DWORD WINAPI get_input(LPVOID arg)
+// Key propagation communication with timeout
+HANDLE signalMutex = CreateMutex(NULL, FALSE, NULL);
+HANDLE requestTimeoutSemaphore = CreateSemaphore(NULL, 0, INT_MAX, NULL);
+HANDLE responseSemaphore = CreateSemaphore(NULL, 0, INT_MAX, NULL);
+long requestTime = 0;
+long curId = 0;
+std::string output = "";
+
+bool haltPropogation(KBDLLHOOKSTRUCT key, KeyState keyState)
 {
-    data *buf = (data *)arg;
-    return !std::cin.getline(buf->buffer, buf->size);
+    printErr(("Request: " + std::to_string(curId) + " " + std::to_string(key.vkCode)).c_str());
+    printf("%i,%s,%i\n", key.vkCode, (keyState == down ? "DOWN" : "UP"), key.scanCode);
+    fflush(stdout);
+
+    requestTime = time(0) * 1000 + timeoutTime;
+    ReleaseSemaphore(requestTimeoutSemaphore, 1, NULL);
+
+    WaitForSingleObject(responseSemaphore, INFINITE);
+
+    return output == "1";
 }
 
-std::string awaitLine()
+DWORD WINAPI checkInputLoop(LPVOID lpParam)
 {
-    char buffer[10] = {0};
-    data arg = {buffer, 10};
-
-    //Execute get_input callback in a new thread
-    //TODO: Look into more performant way of timing out
-    HANDLE h = CreateThread(NULL, 0, get_input, &arg, 0, 0);
-
-    //Default buffer
-    buffer[0] = '0';
-
-    //Override buffer using thread
-    if (h != NULL && WaitForSingleObjectEx(h, 100, FALSE) == WAIT_TIMEOUT)
+    long receivedId = 0;
+    while (true)
     {
-        printErr("Host application didn't respond in 100ms, timeout occurred, event propogated (not captured).");
-    }
+        std::string entry;
+        std::getline(std::cin, entry);
 
-    //Close thread and return
-    CloseHandle(h);
-    return buffer;
+        WaitForSingleObject(signalMutex, INFINITE);
+        if (receivedId == curId)
+        {
+            output = entry;
+            curId = curId + 1;
+            ReleaseSemaphore(responseSemaphore, 1, NULL);
+            printErr(("Input: " + std::to_string(receivedId)).c_str());
+        }
+        ReleaseMutex(signalMutex);
+
+        receivedId = receivedId + 1;
+    }
+    return 0;
+}
+
+DWORD WINAPI timeoutLoop(LPVOID lpParam)
+{
+    long receivedId = 0;
+    while (true)
+    {
+        WaitForSingleObject(requestTimeoutSemaphore, INFINITE);
+        long sleepDuration = requestTime - time(0) * 1000;
+
+        if (sleepDuration > 0)
+            Sleep(sleepDuration);
+
+        WaitForSingleObject(signalMutex, INFINITE);
+        if (receivedId == curId)
+        {
+            output = "0";
+            curId = curId + 1;
+            ReleaseSemaphore(responseSemaphore, 1, NULL);
+            printErr(("Timeout: " + std::to_string(receivedId)).c_str());
+        }
+        ReleaseMutex(signalMutex);
+
+        receivedId = receivedId + 1;
+    }
+    return 0;
 }

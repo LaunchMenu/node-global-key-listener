@@ -9,7 +9,7 @@ export type IGlobalKeyEvent = {
         _nameRaw: string;
         name: string;
     };
-    name: IGlobalKey;
+    name?: IGlobalKey;
     state: "DOWN" | "UP";
     scanCode: number;
     _raw: string;

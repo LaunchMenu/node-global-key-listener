@@ -119,14 +119,18 @@ export class GlobalKeyboardListener {
         let stopPropagation = false;
         for (let onKey of this.listeners) {
             //Forward event
-            const res = onKey(event, this.isDown);
+            try {
+                const res = onKey(event, this.isDown);
 
-            //Handle catch data
-            if (res instanceof Object) {
-                if (res.stopPropagation) stopPropagation = true;
-                if (res.stopImmediatePropagation) break;
-            } else if (res) {
-                stopPropagation = true;
+                //Handle catch data
+                if (res instanceof Object) {
+                    if (res.stopPropagation) stopPropagation = true;
+                    if (res.stopImmediatePropagation) break;
+                } else if (res) {
+                    stopPropagation = true;
+                }
+            } catch (e) {
+                console.error(e);
             }
         }
 

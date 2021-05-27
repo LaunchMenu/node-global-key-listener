@@ -33,10 +33,10 @@ export class WinKeyServer implements IGlobalKeyServer {
 
         this.proc.stdout.on("data", data => {
             const events = this._getEventData(data);
-            for (let event of events) {
+            for (let {event, eventId} of events) {
                 const stopPropagation = !!this.listener(event);
 
-                this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");
+                this.proc.stdin.write(`${stopPropagation ? "1" : "0"},${eventId}\n`);
             }
         });
     }
@@ -52,7 +52,7 @@ export class WinKeyServer implements IGlobalKeyServer {
      * @param data Data from stdout
      * @returns The standardized key event data
      */
-    protected _getEventData(data: any): IGlobalKeyEvent[] {
+    protected _getEventData(data: any): {event: IGlobalKeyEvent; eventId: string}[] {
         const sData: string = data.toString();
         const lines = sData.trim().split(/\n/);
         return lines.map(line => {
@@ -62,13 +62,17 @@ export class WinKeyServer implements IGlobalKeyServer {
             const key = WinGlobalKeyLookup[vKey];
             const keyDown = /DOWN/.test(arr[1]);
             const scanCode = parseInt(arr[2]);
+            const eventId = arr[3];
             return {
-                vKey,
-                rawKey: key,
-                name: key?.standardName,
-                state: keyDown ? "DOWN" : "UP",
-                scanCode,
-                _raw: sData,
+                event: {
+                    vKey,
+                    rawKey: key,
+                    name: key?.standardName,
+                    state: keyDown ? "DOWN" : "UP",
+                    scanCode,
+                    _raw: sData,
+                },
+                eventId,
             };
         });
     }

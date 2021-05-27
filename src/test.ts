@@ -27,12 +27,25 @@ v.addListener(function (e, down) {
         console.log("captured");
         return true;
     }
+    if (e.state == "DOWN" && e.name == "I" && (down["LEFT META"] || down["RIGHT META"])) {
+        console.log("captured");
+        return true;
+    }
     if (e.state == "DOWN" && e.name == "F") {
         // && (down["LEFT ALT"] || down["RIGHT ALT"])) {
-        console.log("captured");
+        console.log("captured attempted");
         const start = Date.now();
         while (Date.now() - start < 1000);
 
+        return true;
+    }
+
+    if (e.state == "DOWN" && e.name == "M") {
+        return true;
+    }
+    if (e.state == "DOWN" && e.name == "N") {
+        throw "Shit";
+        console.log("captured");
         return true;
     }
 });

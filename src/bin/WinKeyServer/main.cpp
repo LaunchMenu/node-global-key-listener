@@ -79,12 +79,6 @@ __declspec(dllexport) LRESULT CALLBACK KeyboardEvent(int nCode, WPARAM wParam, L
     {
         KBDLLHOOKSTRUCT key = *((KBDLLHOOKSTRUCT *)lParam);
 
-        //Work around for Windows key behaviour. See github issue #3
-        if (key.vkCode == VK_LWIN || key.vkCode == VK_RWIN)
-            bIsMetaDown = ks == down;
-        if (key.vkCode == VK_LMENU || key.vkCode == VK_RMENU)
-            bIsAltDown = ks == down;
-
         //Stop propogation if needed using stdio messaging. 1st param is casted lPARAM.
         //Returning 1 from this function will halt propogation
         if (haltPropogation(key, ks))
@@ -97,6 +91,14 @@ __declspec(dllexport) LRESULT CALLBACK KeyboardEvent(int nCode, WPARAM wParam, L
                 fakeKey(KEYEVENTF_KEYUP, VK_HELP);
             }
             return 1;
+        }
+        else
+        {
+            //Work around for Windows key behaviour. See github issue #3
+            if (key.vkCode == VK_LWIN || key.vkCode == VK_RWIN)
+                bIsMetaDown = ks == down;
+            if (key.vkCode == VK_LMENU || key.vkCode == VK_RMENU)
+                bIsAltDown = ks == down;
         }
     }
     return CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
@@ -157,8 +159,7 @@ std::string output = "";
 
 bool haltPropogation(KBDLLHOOKSTRUCT key, KeyState keyState)
 {
-    printErr(("Request: " + std::to_string(curId) + " " + std::to_string(key.vkCode)).c_str());
-    printf("%i,%s,%i\n", key.vkCode, (keyState == down ? "DOWN" : "UP"), key.scanCode);
+    printf("%i,%s,%i,%i\n", key.vkCode, (keyState == down ? "DOWN" : "UP"), key.scanCode, curId);
     fflush(stdout);
 
     requestTime = time(0) * 1000 + timeoutTime;
@@ -171,23 +172,25 @@ bool haltPropogation(KBDLLHOOKSTRUCT key, KeyState keyState)
 
 DWORD WINAPI checkInputLoop(LPVOID lpParam)
 {
-    long receivedId = 0;
     while (true)
     {
         std::string entry;
         std::getline(std::cin, entry);
 
         WaitForSingleObject(signalMutex, INFINITE);
-        if (receivedId == curId)
+
+        // Extract the new id
+        int index = entry.find_first_of(",");
+        std::string code = entry.substr(0, index);
+        int id = atoi((entry.substr(index + 1)).c_str());
+        if (id == curId)
         {
-            output = entry;
+
+            output = code;
             curId = curId + 1;
             ReleaseSemaphore(responseSemaphore, 1, NULL);
-            printErr(("Input: " + std::to_string(receivedId)).c_str());
         }
         ReleaseMutex(signalMutex);
-
-        receivedId = receivedId + 1;
     }
     return 0;
 }
@@ -209,7 +212,6 @@ DWORD WINAPI timeoutLoop(LPVOID lpParam)
             output = "0";
             curId = curId + 1;
             ReleaseSemaphore(responseSemaphore, 1, NULL);
-            printErr(("Timeout: " + std::to_string(receivedId)).c_str());
         }
         ReleaseMutex(signalMutex);
 

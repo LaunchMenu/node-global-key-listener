@@ -1,10 +1,10 @@
-import { IGlobalKeyServer } from "./_types/IGlobalKeyServer";
-import { ChildProcessWithoutNullStreams, spawn } from "child_process";
-import { IGlobalKeyEvent } from "./_types/IGlobalKeyEvent";
-import { IGlobalKeyListenerRaw } from "./_types/IGlobalKeyListenerRaw";
-import { WinGlobalKeyLookup } from "./_data/WinGlobalKeyLookup";
+import {IGlobalKeyServer} from "./_types/IGlobalKeyServer";
+import {ChildProcessWithoutNullStreams, spawn} from "child_process";
+import {IGlobalKeyEvent} from "./_types/IGlobalKeyEvent";
+import {IGlobalKeyListenerRaw} from "./_types/IGlobalKeyListenerRaw";
+import {WinGlobalKeyLookup} from "./_data/WinGlobalKeyLookup";
 import Path from "path";
-import { IWindowsConfig } from "./_types/IWindowsConfig";
+import {IWindowsConfig} from "./_types/IWindowsConfig";
 const sPath = "../../bin/WinKeyServer.exe";
 
 /** Use this class to listen to key events on Windows OS */
@@ -12,10 +12,6 @@ export class WinKeyServer implements IGlobalKeyServer {
     protected listener: IGlobalKeyListenerRaw;
     private proc: ChildProcessWithoutNullStreams;
 
-    // Meta release handling
-    protected captureWindowsKeyUp: boolean;
-    protected isMetaDown = false;
-    protected captureMetaUp = false;
     protected config: IWindowsConfig;
 
     /**
@@ -23,10 +19,7 @@ export class WinKeyServer implements IGlobalKeyServer {
      * @param listener The callback to report key events to
      * @param windowsConfig The optional windows configuration
      */
-    public constructor(
-        listener: IGlobalKeyListenerRaw,
-        config: IWindowsConfig = {}
-    ) {
+    public constructor(listener: IGlobalKeyListenerRaw, config: IWindowsConfig = {}) {
         this.listener = listener;
         this.config = config;
     }
@@ -34,15 +27,17 @@ export class WinKeyServer implements IGlobalKeyServer {
     /** Start the Key server and listen for keypresses */
     public start() {
         this.proc = spawn(Path.join(__dirname, sPath));
-        if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));
+        if (this.config.onInfo)
+            this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));
         if (this.config.onError) this.proc.on("close", this.config.onError);
 
         this.proc.stdout.on("data", data => {
-            let event = this._getEventData(data);
-            let stopPropagation = !!this.listener(event);
+            const events = this._getEventData(data);
+            for (let {event, eventId} of events) {
+                const stopPropagation = !!this.listener(event);
 
-            //If we want to halt propagation send 1, else send 0
-            this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");
+                this.proc.stdin.write(`${stopPropagation ? "1" : "0"},${eventId}\n`);
+            }
         });
     }
 
@@ -55,22 +50,30 @@ export class WinKeyServer implements IGlobalKeyServer {
     /**
      * Obtains a IGlobalKeyEvent from stdout buffer data
      * @param data Data from stdout
-     * @returns The standardized key event
+     * @returns The standardized key event data
      */
-    protected _getEventData(data: any): IGlobalKeyEvent {
-        let sData = data.toString().replace(/\s+/, "");
-        let arr = sData.split(",");
-        let vKey = parseInt(arr[0]);
-        let key = WinGlobalKeyLookup[vKey];
-        let keyDown = /DOWN/.test(arr[1]);
-        let scanCode = parseInt(arr[2]);
-        return {
-            vKey,
-            rawKey: key,
-            name: key?.standardName,
-            state: keyDown ? "DOWN" : "UP",
-            scanCode,
-            _raw: sData,
-        } as IGlobalKeyEvent;
+    protected _getEventData(data: any): {event: IGlobalKeyEvent; eventId: string}[] {
+        const sData: string = data.toString();
+        const lines = sData.trim().split(/\n/);
+        return lines.map(line => {
+            const lineData = line.replace(/\s+/, "");
+            const arr = lineData.split(",");
+            const vKey = parseInt(arr[0]);
+            const key = WinGlobalKeyLookup[vKey];
+            const keyDown = /DOWN/.test(arr[1]);
+            const scanCode = parseInt(arr[2]);
+            const eventId = arr[3];
+            return {
+                event: {
+                    vKey,
+                    rawKey: key,
+                    name: key?.standardName,
+                    state: keyDown ? "DOWN" : "UP",
+                    scanCode,
+                    _raw: sData,
+                },
+                eventId,
+            };
+        });
     }
 }

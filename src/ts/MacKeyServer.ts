@@ -5,6 +5,7 @@ import {IGlobalKeyEvent} from "./_types/IGlobalKeyEvent";
 import {MacGlobalKeyLookup} from "./_data/MacGlobalKeyLookup";
 import Path from "path";
 import {IMacConfig} from "./_types/IMacConfig";
+import sudo from "sudo-prompt";
 const sPath = "../../bin/MacKeyServer";
 
 /** Use this class to listen to key events on Mac OS */
@@ -25,16 +26,47 @@ export class MacKeyServer implements IGlobalKeyServer {
 
     /** Start the Key server and listen for keypresses */
     public start() {
-        this.proc = spawn(Path.join(__dirname, sPath));
-        //TODO:: `if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));`  - use stderr to log info in main process?
-        if (this.config.onError) this.proc.on("close", this.config.onError);
-        this.proc.stdout.on("data", data => {
-            const events = this._getEventData(data);
-            for (let event of events) {
-                const stopPropagation = !!this.listener(event);
+        const path = Path.join(__dirname, sPath);
+        const setup = () => {
+            this.proc = spawn(path);
+            //TODO:: `if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));`  - use stderr to log info in main process?
+            if (this.config.onError) this.proc.on("close", this.config.onError);
+            this.proc.stdout.on("data", data => {
+                const events = this._getEventData(data);
+                for (let event of events) {
+                    const stopPropagation = !!this.listener(event);
 
-                this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");
+                    this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");
+                }
+            });
+        };
+
+        try {
+            setup();
+        } catch (e) {
+            this.addPerms(path);
+            setup();
+        }
+    }
+
+    /**
+     * Makes sure that the given path is executable
+     * @param path The path to add the perms to
+     */
+    protected addPerms(path: string): void {
+        const options = {
+            name: "Global key listener",
+        };
+        sudo.exec(`chmod +x ${path}`, options, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`exec error: ${error}`);
+                return;
             }
+            if (stderr) {
+                console.error(`stderr: ${stderr}`);
+                return;
+            }
+            console.log(`stdout: ${stdout}`);
         });
     }
 

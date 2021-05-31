@@ -12,11 +12,11 @@
         "watch": "tsc -w",
         "build": "tsc",
         "test": "node build/test.js",
-        "compile-win": "compile-win.bat",
+        "compile-win": "scripts/compile-win.bat",
         "compile-mac": "swiftc src/bin/MacKeyServer/main.swift -o bin/MacKeyServer",
         "postinstall:darwin": "sudo chmod +x bin/MacKeyServer",
         "postinstall:default": "echo 'no postinstall required'",
-        "postinstall": "run-script-os"
+        "postinstall": "node scripts/postinstall.js"
     },
     "repository": {
         "type": "git",
@@ -40,8 +40,5 @@
     },
     "publishConfig": {
         "access": "public"
-    },
-    "dependencies": {
-        "run-script-os": "^1.1.6"
     }
 }

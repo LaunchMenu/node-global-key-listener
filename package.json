@@ -6,7 +6,8 @@
     "main": "build/index.js",
     "files": [
         "bin/**/*",
-        "build/**/*"
+        "build/**/*",
+        "scripts/postinstall.js"
     ],
     "scripts": {
         "watch": "tsc -w",
@@ -38,5 +39,8 @@
     },
     "publishConfig": {
         "access": "public"
+    },
+    "dependencies": {
+        "sudo-prompt": "^9.2.1"
     }
 }

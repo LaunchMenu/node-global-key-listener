@@ -14,8 +14,6 @@
         "test": "node build/test.js",
         "compile-win": "scripts/compile-win.bat",
         "compile-mac": "swiftc src/bin/MacKeyServer/main.swift -o bin/MacKeyServer",
-        "postinstall:darwin": "sudo chmod +x bin/MacKeyServer",
-        "postinstall:default": "echo 'no postinstall required'",
         "postinstall": "node scripts/postinstall.js"
     },
     "repository": {

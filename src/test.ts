@@ -48,4 +48,6 @@ v.addListener(function (e, down) {
         console.log("captured");
         return true;
     }
-});
+})
+    .then(() => console.log("Success"))
+    .catch(e => console.log("Error: " + e));

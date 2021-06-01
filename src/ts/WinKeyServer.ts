@@ -5,6 +5,7 @@ import {IGlobalKeyListenerRaw} from "./_types/IGlobalKeyListenerRaw";
 import {WinGlobalKeyLookup} from "./_data/WinGlobalKeyLookup";
 import Path from "path";
 import {IWindowsConfig} from "./_types/IWindowsConfig";
+import {isSpawnEventSupported} from "./isSpawnEventSupported";
 const sPath = "../../bin/WinKeyServer.exe";
 
 /** Use this class to listen to key events on Windows OS */
@@ -25,7 +26,7 @@ export class WinKeyServer implements IGlobalKeyServer {
     }
 
     /** Start the Key server and listen for keypresses */
-    public start() {
+    public async start() {
         this.proc = spawn(Path.join(__dirname, sPath));
         if (this.config.onInfo)
             this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));
@@ -38,6 +39,14 @@ export class WinKeyServer implements IGlobalKeyServer {
 
                 this.proc.stdin.write(`${stopPropagation ? "1" : "0"},${eventId}\n`);
             }
+        });
+
+        return new Promise<void>((res, err) => {
+            this.proc.on("error", err);
+
+            if (isSpawnEventSupported()) this.proc.on("spawn", res);
+            // A timed fallback if the spawn event is not supported
+            else setTimeout(res, 200);
         });
     }
 

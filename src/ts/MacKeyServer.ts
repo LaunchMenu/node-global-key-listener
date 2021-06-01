@@ -6,6 +6,7 @@ import {MacGlobalKeyLookup} from "./_data/MacGlobalKeyLookup";
 import Path from "path";
 import {IMacConfig} from "./_types/IMacConfig";
 import sudo from "sudo-prompt";
+import {isSpawnEventSupported} from "./isSpawnEventSupported";
 const sPath = "../../bin/MacKeyServer";
 
 /** Use this class to listen to key events on Mac OS */
@@ -28,7 +29,7 @@ export class MacKeyServer implements IGlobalKeyServer {
     public start() {
         const path = Path.join(__dirname, sPath);
         let addedPerms = false;
-        const setup = () => {
+        const setup = async () => {
             this.proc = spawn(path);
             //TODO:: `if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));`  - use stderr to log info in main process?
             if (this.config.onError) this.proc.on("close", this.config.onError);
@@ -41,21 +42,29 @@ export class MacKeyServer implements IGlobalKeyServer {
                 }
             });
 
-            // If setup fails, try adding permissions
-            if (!addedPerms)
+            return new Promise<void>((res, rej) => {
+                // If setup fails, try adding permissions
                 this.proc.on("error", async err => {
-                    addedPerms = true;
-                    this.proc.kill();
-                    try {
-                        await this.addPerms(path);
-                        setup();
-                    } catch (e) {
-                        if (this.config.onError) this.config.onError(e);
-                        else console.error(e);
+                    if (!addedPerms) {
+                        addedPerms = true;
+                        try {
+                            this.proc.kill();
+                            await this.addPerms(path);
+                            res(setup());
+                        } catch (e) {
+                            rej(e);
+                        }
+                    } else {
+                        rej(err);
                     }
                 });
+
+                if (isSpawnEventSupported()) this.proc.on("spawn", res);
+                // A timed fallback if the spawn event is not supported
+                else setTimeout(res, 200);
+            });
         };
-        setup();
+        return setup();
     }
 
     /**

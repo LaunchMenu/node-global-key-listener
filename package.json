@@ -6,8 +6,7 @@
     "main": "build/index.js",
     "files": [
         "bin/**/*",
-        "build/**/*",
-        "scripts/postinstall.js"
+        "build/**/*"
     ],
     "scripts": {
         "watch": "tsc -w",

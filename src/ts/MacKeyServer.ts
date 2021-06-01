@@ -27,6 +27,7 @@ export class MacKeyServer implements IGlobalKeyServer {
     /** Start the Key server and listen for keypresses */
     public start() {
         const path = Path.join(__dirname, sPath);
+        let addedPerms = false;
         const setup = () => {
             this.proc = spawn(path);
             //TODO:: `if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));`  - use stderr to log info in main process?
@@ -39,34 +40,44 @@ export class MacKeyServer implements IGlobalKeyServer {
                     this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");
                 }
             });
-        };
 
-        try {
-            setup();
-        } catch (e) {
-            this.addPerms(path);
-            setup();
-        }
+            // If setup fails, try adding permissions
+            if (!addedPerms)
+                this.proc.on("error", async err => {
+                    addedPerms = true;
+                    this.proc.kill();
+                    try {
+                        await this.addPerms(path);
+                        setup();
+                    } catch (e) {
+                        if (this.config.onError) this.config.onError(e);
+                        else console.error(e);
+                    }
+                });
+        };
+        setup();
     }
 
     /**
      * Makes sure that the given path is executable
      * @param path The path to add the perms to
      */
-    protected addPerms(path: string): void {
+    protected addPerms(path: string): Promise<void> {
         const options = {
             name: "Global key listener",
         };
-        sudo.exec(`chmod +x ${path}`, options, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`exec error: ${error}`);
-                return;
-            }
-            if (stderr) {
-                console.error(`stderr: ${stderr}`);
-                return;
-            }
-            console.log(`stdout: ${stdout}`);
+        return new Promise((res, err) => {
+            sudo.exec(`chmod +x "${path}"`, options, (error, stdout, stderr) => {
+                if (error) {
+                    err(error);
+                    return;
+                }
+                if (stderr) {
+                    err(stderr);
+                    return;
+                }
+                res();
+            });
         });
     }
 

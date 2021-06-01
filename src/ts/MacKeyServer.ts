@@ -15,6 +15,9 @@ export class MacKeyServer implements IGlobalKeyServer {
     private proc: ChildProcessWithoutNullStreams;
     private config: IMacConfig;
 
+    private running = false;
+    private restarting = false;
+
     /**
      * Creates a new key server for mac
      * @param listener The callback to report key events to
@@ -25,46 +28,76 @@ export class MacKeyServer implements IGlobalKeyServer {
         this.config = config;
     }
 
-    /** Start the Key server and listen for keypresses */
-    public start() {
-        const path = Path.join(__dirname, sPath);
-        let addedPerms = false;
-        const setup = async () => {
-            this.proc = spawn(path);
-            //TODO:: `if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));`  - use stderr to log info in main process?
-            if (this.config.onError) this.proc.on("close", this.config.onError);
-            this.proc.stdout.on("data", data => {
-                const events = this._getEventData(data);
-                for (let event of events) {
-                    const stopPropagation = !!this.listener(event);
+    /**
+     * Start the Key server and listen for keypresses
+     * @param skipPerms Whether to skip attempting to add permissions
+     */
+    public start(skipPerms?: boolean): Promise<void> {
+        this.running = true;
 
-                    this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");
+        const path = Path.join(__dirname, sPath);
+
+        this.proc = spawn(path);
+        //TODO:: `if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));`  - use stderr to log info in main process?
+        const onError = this.config.onError;
+        if (onError)
+            this.proc.on("close", code => {
+                if (!this.restarting && this.running) onError(code);
+            });
+
+        this.proc.stdout.on("data", data => {
+            const events = this._getEventData(data);
+            for (let event of events) {
+                const stopPropagation = !!this.listener(event);
+
+                this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");
+            }
+        });
+
+        return this.handleStartup(skipPerms ?? false);
+    }
+
+    /**
+     * Deals with the startup process of the server, possibly adding perms if required and restarting
+     * @param skipPerms Whether to skip attempting to add permissions
+     */
+    protected handleStartup(skipPerms: boolean): Promise<void> {
+        return new Promise<void>((res, rej) => {
+            let errored = false;
+
+            // If setup fails, try adding permissions
+            this.proc.on("error", async err => {
+                errored = true;
+                if (skipPerms) {
+                    rej(err);
+                } else {
+                    try {
+                        this.restarting = true;
+                        this.proc.kill();
+                        await this.addPerms(Path.join(__dirname, sPath));
+
+                        // If the server was stopped in between, just act as if it was started successfully
+                        if (!this.running) {
+                            res();
+                            return;
+                        }
+
+                        res(this.start(true));
+                    } catch (e) {
+                        rej(e);
+                    } finally {
+                        this.restarting = false;
+                    }
                 }
             });
 
-            return new Promise<void>((res, rej) => {
-                // If setup fails, try adding permissions
-                this.proc.on("error", async err => {
-                    if (!addedPerms) {
-                        addedPerms = true;
-                        try {
-                            this.proc.kill();
-                            await this.addPerms(path);
-                            res(setup());
-                        } catch (e) {
-                            rej(e);
-                        }
-                    } else {
-                        rej(err);
-                    }
-                });
-
-                if (isSpawnEventSupported()) this.proc.on("spawn", res);
-                // A timed fallback if the spawn event is not supported
-                else setTimeout(res, 200);
-            });
-        };
-        return setup();
+            if (isSpawnEventSupported()) this.proc.on("spawn", res);
+            // A timed fallback if the spawn event is not supported
+            else
+                setTimeout(() => {
+                    if (!errored) res();
+                }, 200);
+        });
     }
 
     /**
@@ -92,6 +125,7 @@ export class MacKeyServer implements IGlobalKeyServer {
 
     /** Stop the Key server */
     public stop() {
+        this.running = false;
         this.proc.stdout.pause();
         this.proc.kill();
     }

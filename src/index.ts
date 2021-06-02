@@ -57,12 +57,13 @@ export class GlobalKeyboardListener {
     /**
      * Add a global keyboard listener to the global keyboard listener server.
      * @param listener The listener to add to the global keyboard listener
+     * @throws An exception if the process could not be started
      */
-    public addListener(listener: IGlobalKeyListener): void {
+    public async addListener(listener: IGlobalKeyListener): Promise<void> {
         this.listeners.push(listener);
         if (this.listeners.length == 1) {
             clearTimeout(this.stopTimeoutID);
-            this.start();
+            await this.start();
         }
     }
 
@@ -92,13 +93,15 @@ export class GlobalKeyboardListener {
     }
 
     /** Start the key server */
-    protected start() {
-        if (!this.isRunning) this.keyServer.start();
+    protected start(): Promise<void> {
+        let promise = Promise.resolve();
+        if (!this.isRunning) promise = this.keyServer.start();
         this.isRunning = true;
+        return promise;
     }
 
     /** Stop the key server */
-    protected stop() {
+    protected stop(): void {
         if (this.isRunning) this.keyServer.stop();
         this.isRunning = false;
     }

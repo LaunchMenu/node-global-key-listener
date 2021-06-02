@@ -5,6 +5,8 @@ import {IGlobalKeyEvent} from "./_types/IGlobalKeyEvent";
 import {MacGlobalKeyLookup} from "./_data/MacGlobalKeyLookup";
 import Path from "path";
 import {IMacConfig} from "./_types/IMacConfig";
+import sudo from "sudo-prompt";
+import {isSpawnEventSupported} from "./isSpawnEventSupported";
 const sPath = "../../bin/MacKeyServer";
 
 /** Use this class to listen to key events on Mac OS */
@@ -12,6 +14,9 @@ export class MacKeyServer implements IGlobalKeyServer {
     protected listener: IGlobalKeyListenerRaw;
     private proc: ChildProcessWithoutNullStreams;
     private config: IMacConfig;
+
+    private running = false;
+    private restarting = false;
 
     /**
      * Creates a new key server for mac
@@ -23,11 +28,23 @@ export class MacKeyServer implements IGlobalKeyServer {
         this.config = config;
     }
 
-    /** Start the Key server and listen for keypresses */
-    public start() {
-        this.proc = spawn(Path.join(__dirname, sPath));
+    /**
+     * Start the Key server and listen for keypresses
+     * @param skipPerms Whether to skip attempting to add permissions
+     */
+    public start(skipPerms?: boolean): Promise<void> {
+        this.running = true;
+
+        const path = Path.join(__dirname, sPath);
+
+        this.proc = spawn(path);
         //TODO:: `if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));`  - use stderr to log info in main process?
-        if (this.config.onError) this.proc.on("close", this.config.onError);
+        const onError = this.config.onError;
+        if (onError)
+            this.proc.on("close", code => {
+                if (!this.restarting && this.running) onError(code);
+            });
+
         this.proc.stdout.on("data", data => {
             const events = this._getEventData(data);
             for (let event of events) {
@@ -36,10 +53,79 @@ export class MacKeyServer implements IGlobalKeyServer {
                 this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");
             }
         });
+
+        return this.handleStartup(skipPerms ?? false);
+    }
+
+    /**
+     * Deals with the startup process of the server, possibly adding perms if required and restarting
+     * @param skipPerms Whether to skip attempting to add permissions
+     */
+    protected handleStartup(skipPerms: boolean): Promise<void> {
+        return new Promise<void>((res, rej) => {
+            let errored = false;
+
+            // If setup fails, try adding permissions
+            this.proc.on("error", async err => {
+                errored = true;
+                if (skipPerms) {
+                    rej(err);
+                } else {
+                    try {
+                        this.restarting = true;
+                        this.proc.kill();
+                        await this.addPerms(Path.join(__dirname, sPath));
+
+                        // If the server was stopped in between, just act as if it was started successfully
+                        if (!this.running) {
+                            res();
+                            return;
+                        }
+
+                        res(this.start(true));
+                    } catch (e) {
+                        rej(e);
+                    } finally {
+                        this.restarting = false;
+                    }
+                }
+            });
+
+            if (isSpawnEventSupported()) this.proc.on("spawn", res);
+            // A timed fallback if the spawn event is not supported
+            else
+                setTimeout(() => {
+                    if (!errored) res();
+                }, 200);
+        });
+    }
+
+    /**
+     * Makes sure that the given path is executable
+     * @param path The path to add the perms to
+     */
+    protected addPerms(path: string): Promise<void> {
+        const options = {
+            name: "Global key listener",
+        };
+        return new Promise((res, err) => {
+            sudo.exec(`chmod +x "${path}"`, options, (error, stdout, stderr) => {
+                if (error) {
+                    err(error);
+                    return;
+                }
+                if (stderr) {
+                    err(stderr);
+                    return;
+                }
+                res();
+            });
+        });
     }
 
     /** Stop the Key server */
     public stop() {
+        this.running = false;
         this.proc.stdout.pause();
         this.proc.kill();
     }

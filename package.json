@@ -6,16 +6,14 @@
     "main": "build/index.js",
     "files": [
         "bin/**/*",
-        "build/**/*",
-        "scripts/postinstall.js"
+        "build/**/*"
     ],
     "scripts": {
         "watch": "tsc -w",
         "build": "tsc",
         "test": "node build/test.js",
         "compile-win": "scripts/compile-win.bat",
-        "compile-mac": "swiftc src/bin/MacKeyServer/main.swift -o bin/MacKeyServer",
-        "postinstall": "node scripts/postinstall.js"
+        "compile-mac": "swiftc src/bin/MacKeyServer/main.swift -o bin/MacKeyServer"
     },
     "repository": {
         "type": "git",

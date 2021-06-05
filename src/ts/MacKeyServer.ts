@@ -38,7 +38,8 @@ export class MacKeyServer implements IGlobalKeyServer {
         const path = Path.join(__dirname, sPath);
 
         this.proc = spawn(path);
-        //TODO:: `if (this.config.onInfo) this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));`  - use stderr to log info in main process?
+        if (this.config.onInfo)
+            this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));
         const onError = this.config.onError;
         if (onError)
             this.proc.on("close", code => {
@@ -47,10 +48,10 @@ export class MacKeyServer implements IGlobalKeyServer {
 
         this.proc.stdout.on("data", data => {
             const events = this._getEventData(data);
-            for (let event of events) {
+            for (let {event, eventId} of events) {
                 const stopPropagation = !!this.listener(event);
 
-                this.proc.stdin.write((stopPropagation ? "1" : "0") + "\n");
+                this.proc.stdin.write(`${stopPropagation ? "1" : "0"},${eventId}\n`);
             }
         });
 
@@ -135,7 +136,7 @@ export class MacKeyServer implements IGlobalKeyServer {
      * @param data Data from stdout
      * @returns The standardized key event data
      */
-    protected _getEventData(data: any): IGlobalKeyEvent[] {
+    protected _getEventData(data: any): {event: IGlobalKeyEvent; eventId: string}[] {
         const sData: string = data.toString();
         const lines = sData.trim().split(/\n/);
         return lines.map(line => {
@@ -144,14 +145,17 @@ export class MacKeyServer implements IGlobalKeyServer {
             const vKey = parseInt(arr[0]);
             const key = MacGlobalKeyLookup[vKey];
             const keyDown = /DOWN/.test(arr[1]);
-            const scanCode = parseInt(arr[2]);
+            const eventId = arr[2];
             return {
-                vKey,
-                rawKey: key,
-                name: key?.standardName,
-                state: keyDown ? "DOWN" : "UP",
-                scanCode,
-                _raw: sData,
+                event: {
+                    vKey,
+                    rawKey: key,
+                    name: key?.standardName,
+                    state: keyDown ? "DOWN" : "UP",
+                    scanCode: vKey,
+                    _raw: sData,
+                },
+                eventId,
             };
         });
     }

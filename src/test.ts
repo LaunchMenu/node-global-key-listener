@@ -7,6 +7,7 @@ const v = new GlobalKeyboardListener({
     },
     mac: {
         onError: errorCode => console.error("ERROR: " + errorCode),
+        onInfo: info => console.info("INFO: " + info),
     },
 });
 v.addListener(function (e, down) {
@@ -35,7 +36,7 @@ v.addListener(function (e, down) {
         // && (down["LEFT ALT"] || down["RIGHT ALT"])) {
         console.log("captured attempted");
         const start = Date.now();
-        while (Date.now() - start < 1000);
+        while (Date.now() - start < 3000);
 
         return true;
     }

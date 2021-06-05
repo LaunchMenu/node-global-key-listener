@@ -6,7 +6,6 @@
 #include <string>
 #include <cstddef>
 #include <ctime>
-#include <windows.h>
 
 /*
 Description:

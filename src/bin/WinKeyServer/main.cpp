@@ -236,7 +236,7 @@ HANDLE requestTimeoutSemaphore = CreateSemaphore(NULL, 0, INT_MAX, NULL);
 HANDLE responseSemaphore = CreateSemaphore(NULL, 0, INT_MAX, NULL);
 long requestTime = 0;
 long responseId = 0;
-long tiemoutId = 0;
+long timeoutId = 0;
 long curId = 0;
 std::string output = "";
 
@@ -316,7 +316,7 @@ DWORD WINAPI timeoutLoop(LPVOID lpParam)
         // Lock the signalling, making sure the input signalling can't happen before we finished here
         WaitForSingleObject(signalMutex, INFINITE);
         timeoutId = timeoutId + 1;
-        if (responseId == timeoutId)
+        if (responseId < timeoutId)
         {
             // Set the output to 0 and signal that there is a response
             output = "0";

@@ -256,7 +256,7 @@ guard let eventTap = CGEvent.tapCreate(tap: .cgSessionEventTap,
                                       eventsOfInterest: CGEventMask(eventMask),
                                       callback: myCGEventTapCallback,
                                       userInfo: nil) else {
-                                        print("failed to create event tap")
+                                        logErr("Failed to create event tap. This may be because the application this is embedded within hasn't received permission. Please go to System Preferences > Security > Accesibility to add this application to the trusted applications.")
                                         exit(1)
 }
 

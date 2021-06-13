@@ -50,7 +50,7 @@ v.addListener(function (e, down) {
 //Call one listener only once (demonstrating removeListener())
 calledOnce = function (e) {
     console.log("only called once");
-    v.removeListener(toRemove);
+    v.removeListener(calledOnce);
 };
 v.addListener(calledOnce);
 

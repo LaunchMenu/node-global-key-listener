@@ -1,5 +1,5 @@
 import {IGlobalKeyServer} from "./_types/IGlobalKeyServer";
-import {ChildProcessWithoutNullStreams, spawn} from "child_process";
+import {ChildProcess, execFile} from "child_process";
 import {IGlobalKeyEvent} from "./_types/IGlobalKeyEvent";
 import {IGlobalKeyListenerRaw} from "./_types/IGlobalKeyListenerRaw";
 import {WinGlobalKeyLookup} from "./_data/WinGlobalKeyLookup";
@@ -11,7 +11,7 @@ const sPath = "../../bin/WinKeyServer.exe";
 /** Use this class to listen to key events on Windows OS */
 export class WinKeyServer implements IGlobalKeyServer {
     protected listener: IGlobalKeyListenerRaw;
-    private proc: ChildProcessWithoutNullStreams;
+    private proc: ChildProcess;
 
     protected config: IWindowsConfig;
 
@@ -27,17 +27,17 @@ export class WinKeyServer implements IGlobalKeyServer {
 
     /** Start the Key server and listen for keypresses */
     public async start() {
-        this.proc = spawn(Path.join(__dirname, sPath));
+        this.proc = execFile(Path.join(__dirname, sPath));
         if (this.config.onInfo)
-            this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));
+            this.proc.stderr?.on("data", data => this.config.onInfo?.(data.toString()));
         if (this.config.onError) this.proc.on("close", this.config.onError);
 
-        this.proc.stdout.on("data", data => {
+        this.proc.stdout?.on("data", data => {
             const events = this._getEventData(data);
             for (let {event, eventId} of events) {
                 const stopPropagation = !!this.listener(event);
 
-                this.proc.stdin.write(`${stopPropagation ? "1" : "0"},${eventId}\n`);
+                this.proc.stdin?.write(`${stopPropagation ? "1" : "0"},${eventId}\n`);
             }
         });
 
@@ -52,7 +52,7 @@ export class WinKeyServer implements IGlobalKeyServer {
 
     /** Stop the Key server */
     public stop() {
-        this.proc.stdout.pause();
+        this.proc.stdout?.pause();
         this.proc.kill();
     }
 

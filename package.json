@@ -13,8 +13,7 @@
         "build": "tsc",
         "test": "node build/test.js",
         "compile-win": "scripts/compile-win.bat",
-        "compile-mac": "swiftc src/bin/MacKeyServer/main.swift -o bin/MacKeyServer",
-        "test-electron": "electron build/electron-test.js"
+        "compile-mac": "swiftc src/bin/MacKeyServer/main.swift -o bin/MacKeyServer"
     },
     "repository": {
         "type": "git",
@@ -34,8 +33,6 @@
     "homepage": "https://github.com/LaunchMenu/node-global-key-listener#readme",
     "devDependencies": {
         "@types/node": "^14.14.37",
-        "electron": "^15.1.2",
-        "electron-builder": "^22.13.1",
         "typescript": "^4.2.3"
     },
     "publishConfig": {
@@ -43,36 +40,5 @@
     },
     "dependencies": {
         "sudo-prompt": "^9.2.1"
-    },
-    "build": {
-        "appId": "com.electron.launchmenu-node-global-key-listener",
-        "productName": "node-global-key-listener",
-        "files": [
-            "build/**/*"
-        ],
-        "directories": {
-            "buildResources": "build",
-            "output": "dist",
-            "app": "."
-        },
-        "nsis": {
-            "allowElevation": false,
-            "allowToChangeInstallationDirectory": true,
-            "oneClick": false,
-            "perMachine": true
-        },
-        "win": {
-            "requestedExecutionLevel": "requireAdministrator"
-        },
-        "electronVersion": "10.1.2",
-        "extraResources": [
-            {
-                "from": "../../node_modules/regedit/vbs",
-                "to": "regedit/vbs",
-                "filter": [
-                    "**/*"
-                ]
-            }
-        ]
     }
 }

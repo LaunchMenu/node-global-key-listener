@@ -1,5 +1,5 @@
 import {app, BrowserWindow} from "electron";
-import {GlobalKeyboardListener} from ".";
+import {GlobalKeyboardListener} from "node-global-key-listener";
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -11,14 +11,24 @@ function createWindow() {
         },
     });
 
-    win.loadFile("../index.html");
+    if (require("electron-is-running-in-asar")()) {
+        // Works in ASAR
+        win.loadFile("build/index.html");
+    } else {
+        // Works during dev
+        win.loadFile("index.html");
+    }
+
     win.webContents.openDevTools();
 
     const listener = new GlobalKeyboardListener();
     listener.addListener(evt => {
         win.webContents.send("key", evt);
-        console.log("sent");
     });
+
+    setTimeout(() => {
+        win.webContents.send("key", "Communication test");
+    }, 2000);
 }
 
 app.whenReady().then(createWindow);

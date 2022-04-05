@@ -50,7 +50,7 @@ v.addListener(function (e, down) {
 //Call one listener only once (demonstrating removeListener())
 calledOnce = function (e) {
     console.log("only called once");
-    v.removeListener(toRemove);
+    v.removeListener(calledOnce);
 };
 v.addListener(calledOnce);
 
@@ -162,4 +162,4 @@ npm run compile-mac
 ## Notes
 
 -   If Including this package into an Electron application, the built application will require explicit permission from the user on Mac OS X systems.
--   Given that a fallback may be required we may release an `electron-global-key-listener` package to accommodate this in the future. In our case for LaunchMenu, our this fallback is implemented in [`core/keyHandler`](https://github.com/LaunchMenu/LaunchMenu/tree/master/packages/core/src/keyHandler).
+-   Given that a fallback may be required we may release an `electron-global-key-listener` package to accommodate this in the future. In our case for LaunchMenu, our fallback is implemented in [`core/keyHandler`](https://github.com/LaunchMenu/LaunchMenu/blob/master/packages/core/src/keyHandler/globalKeyHandler/globalKeyHandler.ts).

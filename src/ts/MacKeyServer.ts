@@ -35,9 +35,9 @@ export class MacKeyServer implements IGlobalKeyServer {
     public start(skipPerms?: boolean): Promise<void> {
         this.running = true;
 
-        const path = Path.join(__dirname, sPath);
+        const serverPath = this.config.serverPath || Path.join(__dirname, sPath);
 
-        this.proc = spawn(path);
+        this.proc = spawn(serverPath);
         if (this.config.onInfo)
             this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));
         const onError = this.config.onError;
@@ -65,6 +65,7 @@ export class MacKeyServer implements IGlobalKeyServer {
     protected handleStartup(skipPerms: boolean): Promise<void> {
         return new Promise<void>((res, rej) => {
             let errored = false;
+            const serverPath = this.config.serverPath || Path.join(__dirname, sPath);
 
             // If setup fails, try adding permissions
             this.proc.on("error", async err => {
@@ -75,7 +76,7 @@ export class MacKeyServer implements IGlobalKeyServer {
                     try {
                         this.restarting = true;
                         this.proc.kill();
-                        await this.addPerms(Path.join(__dirname, sPath));
+                        await this.addPerms(serverPath);
 
                         // If the server was stopped in between, just act as if it was started successfully
                         if (!this.running) {

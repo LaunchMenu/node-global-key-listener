@@ -5,7 +5,7 @@ import {IGlobalKey} from "./IGlobalKey";
  */
 export type IGlobalKeyEvent = {
     vKey: number;
-    rawKey: {
+    rawKey?: {
         _nameRaw: string;
         name: string;
     };

@@ -10,7 +10,7 @@ Compatibility table:
 | -------- | --------------- | ------------- |
 | Windows  | True            | Win10         |
 | Mac      | True            | Mac OS Mojave |
-| Linux    | Not implemented | N/A           |
+| Linux    | X11 only        | Arch Linux    |
 
 This keyboard listener was originally made for the productivity application, [LaunchMenu](http://launchmenu.github.io/).
 

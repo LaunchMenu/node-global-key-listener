@@ -137,7 +137,7 @@ export class X11KeyServer implements IGlobalKeyServer {
      * @param data Data from stdout
      * @returns The standardized key event data
      */
-    protected _getEventData(data: any): {event: IGlobalKeyEvent; eventId: string}[] {
+    protected _getEventData(data: Buffer): {event: IGlobalKeyEvent; eventId: string}[] {
         const sData: string = data.toString();
         const lines = sData.trim().split(/\n/);
         return lines.map(line => {

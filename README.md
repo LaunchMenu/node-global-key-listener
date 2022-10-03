@@ -159,6 +159,12 @@ npm run compile-win
 npm run compile-mac
 ```
 
+##### Linux (X11)
+
+```
+npm run compile-x11
+```
+
 ## Notes
 
 -   If Including this package into an Electron application, the built application will require explicit permission from the user on Mac OS X systems.

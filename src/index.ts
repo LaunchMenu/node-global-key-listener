@@ -1,6 +1,7 @@
 import os from "os";
 import {MacKeyServer} from "./ts/MacKeyServer";
 import {WinKeyServer} from "./ts/WinKeyServer";
+import {X11KeyServer} from "./ts/X11KeyServer";
 import {IConfig} from "./ts/_types/IConfig";
 import {IGlobalKeyDownMap} from "./ts/_types/IGlobalKeyDownMap";
 import {IGlobalKeyListener} from "./ts/_types/IGlobalKeyListener";
@@ -48,6 +49,9 @@ export class GlobalKeyboardListener {
                 break;
             case "darwin":
                 this.keyServer = new MacKeyServer(this.baseListener, config.mac);
+                break;
+            case "linux":
+                this.keyServer = new X11KeyServer(this.baseListener, config.x11);
                 break;
             default:
                 throw Error("This OS is not supported");

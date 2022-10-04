@@ -16,7 +16,7 @@ v.addListener(function (e, down) {
             " " +
             (e.state == "DOWN" ? "DOWN" : "UP  ") +
             "       [" +
-            e.rawKey._nameRaw +
+            e.rawKey?._nameRaw +
             "]"
     );
 

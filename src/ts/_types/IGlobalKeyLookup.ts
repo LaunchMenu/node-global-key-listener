@@ -1,5 +1,5 @@
 import {IGlobalKey} from "./IGlobalKey";
 
 export type IGlobalKeyLookup = {
-    [key: number]: {_nameRaw: string; name: string; standardName?: IGlobalKey};
+    [key: number]: undefined | {_nameRaw: string; name: string; standardName?: IGlobalKey};
 };

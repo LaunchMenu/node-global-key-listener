@@ -80,7 +80,7 @@ export const MacGlobalKeyLookup: IGlobalKeyLookup = {
     0x5B:{_nameRaw: "kVK_ANSI_Keypad8"        , name: "Keypad8"        , standardName: "NUMPAD 8"},
     0x5C:{_nameRaw: "kVK_ANSI_Keypad9"        , name: "Keypad9"        , standardName: "NUMPAD 9"},
     0x0A:{_nameRaw: "kVK_ANSI_SECTION"        , name: "SECTION"        , standardName: "SECTION"},
-    
+
     /* keycodes for keys that are independent of keyboard layout*/
     0x24:{_nameRaw: "kVK_Return"        , name: "Return"         , standardName: "RETURN"},
     0x30:{_nameRaw: "kVK_Tab"           , name: "Tab"            , standardName: "TAB"},
@@ -133,6 +133,11 @@ export const MacGlobalKeyLookup: IGlobalKeyLookup = {
     0x91:{_nameRaw: "kVK_BrightnessDown", name: "BrightnessDown" , standardName: ""},
     0x90:{_nameRaw: "kVK_BrightnessUp"  , name: "BrightnessUp"   , standardName: ""},
     0xA0:{_nameRaw: "kVK_WindowOverview", name: "WindowOverview" , standardName: ""},
-    0xB3:{_nameRaw: "kVK_AppOverview"   , name: "AppOverview"    , standardName: ""}
+    0xB3:{_nameRaw: "kVK_AppOverview"   , name: "AppOverview"    , standardName: ""},
 
+    // Mouse button codes are artificially offset by 0xFFFF0000 in `MacKeyServer`.
+    // Original mouse button codes: https://developer.apple.com/documentation/coregraphics/cgmousebutton
+    0xFFFF0000:{_nameRaw: "CGMouseButton.left" , name: "left" , standardName: "MOUSE LEFT"},
+    0xFFFF0001:{_nameRaw: "CGMouseButton.right" , name: "right" , standardName: "MOUSE RIGHT"},
+    0xFFFF0002:{_nameRaw: "CGMouseButton.center" , name: "center" , standardName: "MOUSE MIDDLE"},
 };

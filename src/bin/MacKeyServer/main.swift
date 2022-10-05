@@ -49,16 +49,8 @@ Other examples of usage of event taps:
 
 
 //External imports
-import func Swift.print
-import func Swift.readLine
-import func Darwin.C.setbuf
-import func Darwin.C.fputs
-import func Darwin.C.fflush
-import func Darwin.C.usleep
-import var Darwin.C.stdout
-import var Darwin.C.NULL
-import var Darwin.C.stderr
-
+import Swift
+import Darwin.C
 
 //Import of CGEvent, CGEventTapProxy, CGEventType, CGEvent, ...
 import Foundation
@@ -114,9 +106,14 @@ func getMillis() -> Int64 {
  *  Expects "1\n" (halt propogation of event) or "0\n" (do not halt propogation of event)
  * @remark This function timeouts after  30ms and returns false in order to propogate the event to the rest of the OS.
  */
-func haltPropogation(key: Int64, isDown: Bool) -> Bool {
+func haltPropogation(
+  isMouse: Bool,
+  isDown: Bool,
+  keyCode: Int64,
+  location: (Double, Double)
+) -> Bool {
     curId = curId + 1;
-    print("\(key),\(isDown ? "DOWN" : "UP"),\(curId)");
+    print("\(isMouse ? "MOUSE" : "KEYBOARD"),\(isDown ? "DOWN" : "UP"),\(keyCode),\(location.0),\(location.1),\(curId)");
     fflush(stdout);
 
     // Indicate when the next timeout should occur
@@ -126,7 +123,7 @@ func haltPropogation(key: Int64, isDown: Bool) -> Bool {
     // Wait for any response 
     responseSemaphore.wait();
 
-    return output=="1";
+    return output == "1";
 }
 
 /**
@@ -228,36 +225,89 @@ func getModifierDownState(event: CGEvent, keyCode: Int64) -> Bool {
 func myCGEventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refcon: UnsafeMutableRawPointer?) -> Unmanaged<CGEvent>? {
     if [.keyDown , .keyUp].contains(type) {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode) //CGKeyCode
-        if(haltPropogation(key: keyCode, isDown: type == .keyDown)){
+        if haltPropogation(
+             isMouse: false,
+             isDown: type == .keyDown,
+             keyCode: keyCode,
+             location: (0, 0)
+           ) {
             return nil
         }
-    } else if [.flagsChanged].contains(type){
+
+    } else if [.flagsChanged].contains(type) {
         //keycode is still available
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let downState = getModifierDownState(event: event, keyCode: keyCode);
-        if(haltPropogation(key: keyCode, isDown: downState)){  
+        if haltPropogation(
+             isMouse: false,
+             isDown: downState,
+             keyCode: keyCode,
+             location: (0, 0)
+           ) {
             return nil
         }
+
+    } else if [
+                .leftMouseDown,
+                .leftMouseUp,
+                .rightMouseDown,
+                .rightMouseUp,
+                .otherMouseDown,
+                .otherMouseUp,
+              ].contains(type) {
+        let isDown = [
+          .leftMouseDown,
+          .rightMouseDown,
+          .otherMouseDown,
+        ].contains(type)
+        let keyCode = event.getIntegerValueField(.mouseEventButtonNumber)
+        if haltPropogation(
+             isMouse: true,
+             isDown: isDown,
+             keyCode: keyCode,
+             location: (event.location.x, event.location.y)
+           ) {
+            return nil
+        }
+
     } else if (type == CGEventType.tapDisabledByTimeout) {
         logErr("Timeout error raised on key listener");
         return nil
     }
+
     return Unmanaged.passRetained(event)
 }
 
 //Define an event mask to quickly narrow down to the events we desire to capture
-let eventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue) | (1 << CGEventType.flagsChanged.rawValue)
+let keyEventMask =
+  (1 << CGEventType.flagsChanged.rawValue)
+  | (1 << CGEventType.keyDown.rawValue)
+  | (1 << CGEventType.keyUp.rawValue)
+
+let mouseEventMask =
+  (1 << CGEventType.leftMouseDown.rawValue)
+  | (1 << CGEventType.leftMouseUp.rawValue)
+  | (1 << CGEventType.rightMouseDown.rawValue)
+  | (1 << CGEventType.rightMouseUp.rawValue)
+  | (1 << CGEventType.otherMouseDown.rawValue)
+  | (1 << CGEventType.otherMouseUp.rawValue)
+
+let eventMask =
+  keyEventMask
+  | mouseEventMask
 
 
 //Create the event tap using [CGEvent.tapCreate](https://developer.apple.com/documentation/coregraphics/cgevent/1454426-tapcreate)
-guard let eventTap = CGEvent.tapCreate(tap: .cgSessionEventTap,
-                                      place: .headInsertEventTap,
-                                      options: .defaultTap,
-                                      eventsOfInterest: CGEventMask(eventMask),
-                                      callback: myCGEventTapCallback,
-                                      userInfo: nil) else {
-                                        logErr("Failed to create event tap. This may be because the application this is embedded within hasn't received permission. Please go to System Preferences > Security > Accesibility to add this application to the trusted applications.")
-                                        exit(1)
+guard let eventTap = CGEvent.tapCreate(
+        tap: .cgSessionEventTap,
+        place: .headInsertEventTap,
+        options: .defaultTap,
+        eventsOfInterest: CGEventMask(eventMask),
+        callback: myCGEventTapCallback,
+        userInfo: nil
+      ) else {
+    logErr("Failed to create event tap. This may be because the application this is embedded within hasn't received permission. Please go to System Preferences > Security > Accesibility to add this application to the trusted applications.")
+    exit(1)
 }
 
 

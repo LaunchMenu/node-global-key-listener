@@ -28,11 +28,15 @@ int main() {
 
     Window rootWindow = DefaultRootWindow(display);
     XIEventMask eventMask;
-    eventMask.deviceid = XIAllMasterDevices;
+    eventMask.deviceid = XIAllDevices;
     eventMask.mask_len = XIMaskLen(XI_LASTEVENT);
+
     eventMask.mask = (unsigned char *) calloc(eventMask.mask_len, sizeof(unsigned char));
     XISetMask(eventMask.mask, XI_RawKeyPress);
     XISetMask(eventMask.mask, XI_RawKeyRelease);
+    XISetMask(eventMask.mask, XI_RawButtonPress);
+    XISetMask(eventMask.mask, XI_RawButtonRelease);
+
     XISelectEvents(display, rootWindow, &eventMask, 1);
     XSync(display, false);
     free(eventMask.mask);
@@ -45,31 +49,68 @@ int main() {
 
     long eventId = 0;
 
+    int lastEvtype = 0;
+    KeyCode lastKeyCode = 0;
+
     while (true) {
-        XEvent event;
-        XGenericEventCookie *cookie = (XGenericEventCookie*)&event.xcookie;
-        XNextEvent(display, &event);
+        XEvent xEvent;
+        XGenericEventCookie *cookie = (XGenericEventCookie*)&xEvent.xcookie;
+        XNextEvent(display, &xEvent);
 
         if (XGetEventData(display, cookie)) {
             if (
                 cookie->type == GenericEvent
                 && cookie->extension == xiOpcode
-                && (
-                    cookie->evtype == XI_RawKeyRelease
-                    || cookie->evtype == XI_RawKeyPress
-                )
             ) {
-                XIRawEvent *xInputEvent = (XIRawEvent *) cookie->data;
-                KeyCode keyCode = xInputEvent->detail;
+                XIRawEvent *xInputRawEvent = (XIRawEvent *) cookie->data;
 
-                std::cout
-                    << (long) keyCode
-                    << ","
-                    << ((cookie->evtype == XI_RawKeyPress) ? "DOWN" : "UP")
-                    << ","
-                    << eventId++
-                    << std::endl;
-                std::flush(std::cout);
+                bool isKeyboard =
+                  cookie->evtype == XI_RawKeyRelease
+                  || cookie->evtype == XI_RawKeyPress;
+
+                bool isMouse =
+                  cookie->evtype == XI_RawButtonRelease
+                  || cookie->evtype == XI_RawButtonPress;
+
+                KeyCode keyCode = xInputRawEvent->detail;
+                int x = 0;
+                int y = 0;
+
+                if (isMouse) {
+                  Window root, child;
+                  int windowX, windowY;
+                  unsigned int mask;
+
+                  XQueryPointer(display, rootWindow, &root, &child, &x, &y, &windowX, &windowY, &mask);
+                }
+
+                bool isDown =
+                  cookie->evtype == XI_RawKeyPress
+                  || cookie->evtype == XI_RawButtonPress;
+
+                bool isDuplicate = lastEvtype == cookie->evtype
+                  && lastKeyCode == keyCode;
+
+                if ((isKeyboard || isMouse) && !isDuplicate) {
+                    std::cout
+                      << (isKeyboard ? "KEYBOARD" : "MOUSE")
+                      << ","
+                      << (isDown ? "DOWN" : "UP")
+                      << ","
+                      << (long) keyCode
+                      << ","
+                      << x
+                      << ","
+                      << y
+                      << ","
+                      << eventId++
+                      << std::endl;
+
+                    std::flush(std::cout);
+                }
+
+                lastEvtype = cookie->evtype;
+                lastKeyCode = keyCode;
             }
             XFreeEventData(display, cookie);
         }

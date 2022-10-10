@@ -12,5 +12,5 @@ export type IGlobalKeyListener = {
      * @param isDown The other keys that are registered to have been held while the event fired (Note this can become desynchronized if another program with higher priority captures and halts an event)
      * @returns Weather the event should be captured
      */
-    (event: IGlobalKeyEvent, isDown: IGlobalKeyDownMap): IGlobalKeyResult;
+    (event: IGlobalKeyEvent, isDown: IGlobalKeyDownMap): IGlobalKeyResult | Promise<IGlobalKeyResult>;
 };

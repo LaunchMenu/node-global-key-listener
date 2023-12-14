@@ -144,7 +144,7 @@ export class MacKeyServer implements IGlobalKeyServer {
             const lineData = line.replace(/\s+/, "");
             const arr = lineData.split(",");
             const vKey = parseInt(arr[0]);
-            const key = MacGlobalKeyLookup[vKey];
+            const key = MacGlobalKeyLookup[vKey]; 
             const keyDown = /DOWN/.test(arr[1]);
             const eventId = arr[2];
             return {

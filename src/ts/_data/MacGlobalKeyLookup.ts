@@ -133,6 +133,15 @@ export const MacGlobalKeyLookup: IGlobalKeyLookup = {
     0x91:{_nameRaw: "kVK_BrightnessDown", name: "BrightnessDown" , standardName: ""},
     0x90:{_nameRaw: "kVK_BrightnessUp"  , name: "BrightnessUp"   , standardName: ""},
     0xA0:{_nameRaw: "kVK_WindowOverview", name: "WindowOverview" , standardName: ""},
-    0xB3:{_nameRaw: "kVK_AppOverview"   , name: "AppOverview"    , standardName: ""}
-
-};
+    0xB3:{_nameRaw: "kVK_AppOverview"   , name: "AppOverview"    , standardName: ""},
+    0x1000: {_nameRaw: "NS_AppleVolumeUp", name: "volumeUp", standardName: "VOLUME UP"},
+    0x1001: {_nameRaw: "NS_AppleVolumeDown", name: "VolumeDown", standardName: "VOLUME DOWN"},
+    0x1002: {_nameRaw: "NS_AppleBrighten", name: "Brighten", standardName: "BRIGHTEN"},
+    0x1003: {_nameRaw: "NS_AppleDim", name: "Dim", standardName: "DIM"},
+    0x1007: {_nameRaw: "NS_AppleSilence", name: "Silence", standardName: "SILENCE"},
+    0x1010: {_nameRaw: "NS_ApplePlay", name: "Play", standardName: "PLAY"},
+    0x1013: {_nameRaw: "NS_AppleForward", name: "Forward", standardName: "FORWARD"},
+    0x1014: {_nameRaw: "NS_AppleRewind", name: "Rewind", standardName: "REWIND"},
+    0x1015: {_nameRaw: "NS_AppleKeyBoardBrighten", name: "KeyBoardBrighten", standardName: "KEYBOARD BRIGHTEN"},
+    0x1016: {_nameRaw: "NS_AppleKeyBoardDim", name: "KeyBoardDim", standardName: "KEYBOARD DIM"},
+    };

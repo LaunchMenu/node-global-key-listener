@@ -123,6 +123,8 @@ type IKeyMouseButton =
     | "MOUSE X1"
     | "MOUSE X2";
 
+type IKeyNSEvents =  'DIM' | 'BRIGHTEN' | 'KEYBOARD DIM'| 'KEYBOARD BRIGHTEN'|'REWIND' | 'PLAY' | 'FORWARD' | 'SILENCE' | 'VOLUME DOWN'  | 'VOLUME UP' ;
+
 export type IGlobalKey =
     | IUndefined
     | IKeyAlphaNumeric
@@ -132,4 +134,5 @@ export type IGlobalKey =
     | IKeySpecials
     | IKeyNumpad
     | IScrollKeys
-    | IKeyRareUse;
+    | IKeyRareUse
+    | IKeyNSEvents;

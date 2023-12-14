@@ -48,20 +48,10 @@ Other examples of usage of event taps:
 */
 
 
-//External imports
-import func Swift.print
-import func Swift.readLine
-import func Darwin.C.setbuf
-import func Darwin.C.fputs
-import func Darwin.C.fflush
-import func Darwin.C.usleep
-import var Darwin.C.stdout
-import var Darwin.C.NULL
-import var Darwin.C.stderr
-
-
 //Import of CGEvent, CGEventTapProxy, CGEventType, CGEvent, ...
 import Foundation
+import CoreGraphics
+import Cocoa
 
 // How long to wait before timing out a key response
 let timeoutTime: Int64 = 30;
@@ -225,8 +215,16 @@ func getModifierDownState(event: CGEvent, keyCode: Int64) -> Bool {
  * other windows in the system, as required. If not captured the event should be returned and `passUnretained`.
  * @remark keyCodes can be found [here](https://stackoverflow.com/a/16125341).
  */
-func myCGEventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refcon: UnsafeMutableRawPointer?) -> Unmanaged<CGEvent>? {
-    if [.keyDown , .keyUp].contains(type) {
+func myCGEventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refcon: UnsafeMutableRawPointer?) -> Unmanaged<CGEvent>? { 
+    let nsev = NSEvent(cgEvent: event);
+    if (type.rawValue == 14 && nsev?.subtype.rawValue == 8) {
+        let keyCode = event.getIntegerValueField(.keyboardEventKeycode) //CGKeyCode
+        let systemKeyCode: Int64 = Int64(((nsev!.data1 & 0xFFFF0000) >> 16) + 4096)
+        if (haltPropogation(key: systemKeyCode, isDown: true)) {
+            return nil;
+        }
+    }
+    else if [.keyDown , .keyUp].contains(type) {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode) //CGKeyCode
         if(haltPropogation(key: keyCode, isDown: type == .keyDown)){
             return nil
@@ -246,7 +244,7 @@ func myCGEventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEv
 }
 
 //Define an event mask to quickly narrow down to the events we desire to capture
-let eventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue) | (1 << CGEventType.flagsChanged.rawValue)
+let eventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue) | (1 << CGEventType.flagsChanged.rawValue) | (1 << 14)
 
 
 //Create the event tap using [CGEvent.tapCreate](https://developer.apple.com/documentation/coregraphics/cgevent/1454426-tapcreate)

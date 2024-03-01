@@ -219,7 +219,7 @@ func getModifierDownState(event: CGEvent, keyCode: Int64) -> Bool {
  * myCGEventTapCallback
  * [CGEventTapCallback](https://developer.apple.com/documentation/coregraphics/cgeventtapcallback) used by CGEvent.tapCreate
  * @remark returning nil from this callback destroys the event and stops it propogating to
- * other windows in the system, as required. If not captured the event should be returned and `passRetained`.
+ * other windows in the system, as required. If not captured the event should be returned and `passUnretained`.
  * @remark keyCodes can be found [here](https://stackoverflow.com/a/16125341).
  */
 func myCGEventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refcon: UnsafeMutableRawPointer?) -> Unmanaged<CGEvent>? {
@@ -274,8 +274,7 @@ func myCGEventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEv
         logErr("Timeout error raised on key listener");
         return nil
     }
-
-    return Unmanaged.passRetained(event)
+    return Unmanaged.passUnretained(event)
 }
 
 //Define an event mask to quickly narrow down to the events we desire to capture

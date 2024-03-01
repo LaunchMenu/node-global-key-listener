@@ -12,12 +12,10 @@ const v = new GlobalKeyboardListener({
 });
 v.addListener(function (e, down) {
     console.log(
-        e.name +
-            " " +
-            (e.state == "DOWN" ? "DOWN" : "UP  ") +
-            "       [" +
-            e.rawKey?._nameRaw +
-            "]"
+        e.name?.padStart(16),
+        e.state.padStart(4),
+        e.rawKey?._nameRaw.padStart(32),
+        e.location?.map(x => x.toFixed(2)).join(' ').padStart(32),
     );
 
     if (

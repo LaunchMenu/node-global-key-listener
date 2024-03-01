@@ -137,23 +137,39 @@ export class MacKeyServer implements IGlobalKeyServer {
      * @param data Data from stdout
      * @returns The standardized key event data
      */
-    protected _getEventData(data: any): {event: IGlobalKeyEvent; eventId: string}[] {
+    protected _getEventData(data: Buffer): {event: IGlobalKeyEvent; eventId: string}[] {
         const sData: string = data.toString();
         const lines = sData.trim().split(/\n/);
         return lines.map(line => {
             const lineData = line.replace(/\s+/, "");
-            const arr = lineData.split(",");
-            const vKey = parseInt(arr[0]);
-            const key = MacGlobalKeyLookup[vKey];
-            const keyDown = /DOWN/.test(arr[1]);
-            const eventId = arr[2];
+
+            const [
+                mouseKeyboard,
+                downUp,
+                sKeyCode,
+                sLocationX,
+                sLocationY,
+                eventId,
+            ] = lineData.split(",");
+
+            const isMouse = mouseKeyboard === 'MOUSE';
+            const isDown = downUp === 'DOWN';
+
+            const keyCode = Number.parseInt(sKeyCode, 10);
+
+            const locationX = Number.parseFloat(sLocationX);
+            const locationY = Number.parseFloat(sLocationY);
+
+            const key = MacGlobalKeyLookup[isMouse ? (0xFFFF0000 + keyCode) : keyCode];
+
             return {
                 event: {
-                    vKey,
+                    vKey: keyCode,
                     rawKey: key,
                     name: key?.standardName,
-                    state: keyDown ? "DOWN" : "UP",
-                    scanCode: vKey,
+                    state: isDown ? "DOWN" : "UP",
+                    scanCode: keyCode,
+                    location: [ locationX, locationY ],
                     _raw: sData,
                 },
                 eventId,

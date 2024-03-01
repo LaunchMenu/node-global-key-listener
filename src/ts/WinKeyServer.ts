@@ -67,19 +67,35 @@ export class WinKeyServer implements IGlobalKeyServer {
         const lines = sData.trim().split(/\n/);
         return lines.map(line => {
             const lineData = line.replace(/\s+/, "");
-            const arr = lineData.split(",");
-            const vKey = parseInt(arr[0]);
-            const key = WinGlobalKeyLookup[vKey];
-            const keyDown = /DOWN/.test(arr[1]);
-            const scanCode = parseInt(arr[2]);
-            const eventId = arr[3];
+
+            const [
+                _mouseKeyboard,
+                downUp,
+                sKeyCode,
+                sScanCode,
+                sLocationX,
+                sLocationY,
+                eventId,
+            ] = lineData.split(",");
+
+            const isDown = downUp === 'DOWN';
+
+            const keyCode = Number.parseInt(sKeyCode, 10);
+            const scanCode = Number.parseInt(sScanCode, 10);
+
+            const locationX = Number.parseFloat(sLocationX);
+            const locationY = Number.parseFloat(sLocationY);
+
+            const key = WinGlobalKeyLookup[keyCode];
+
             return {
                 event: {
-                    vKey,
+                    vKey: keyCode,
                     rawKey: key,
                     name: key?.standardName,
-                    state: keyDown ? "DOWN" : "UP",
-                    scanCode,
+                    state: isDown ? "DOWN" : "UP",
+                    scanCode: scanCode,
+                    location: [ locationX, locationY ],
                     _raw: sData,
                 },
                 eventId,

@@ -1,5 +1,5 @@
 import {IGlobalKeyServer} from "./_types/IGlobalKeyServer";
-import {ChildProcessWithoutNullStreams, spawn} from "child_process";
+import {ChildProcess, execFile} from "child_process";
 import {IGlobalKeyListenerRaw} from "./_types/IGlobalKeyListenerRaw";
 import {IGlobalKeyEvent} from "./_types/IGlobalKeyEvent";
 import {MacGlobalKeyLookup} from "./_data/MacGlobalKeyLookup";
@@ -12,7 +12,7 @@ const sPath = "../../bin/MacKeyServer";
 /** Use this class to listen to key events on Mac OS */
 export class MacKeyServer implements IGlobalKeyServer {
     protected listener: IGlobalKeyListenerRaw;
-    private proc: ChildProcessWithoutNullStreams;
+    private proc: ChildProcess;
     private config: IMacConfig;
 
     private running = false;
@@ -37,21 +37,21 @@ export class MacKeyServer implements IGlobalKeyServer {
 
         const serverPath = this.config.serverPath || Path.join(__dirname, sPath);
 
-        this.proc = spawn(serverPath);
+        this.proc = execFile(serverPath);
         if (this.config.onInfo)
-            this.proc.stderr.on("data", data => this.config.onInfo?.(data.toString()));
+            this.proc.stderr!.on("data", data => this.config.onInfo?.(data.toString()));
         const onError = this.config.onError;
         if (onError)
             this.proc.on("close", code => {
                 if (!this.restarting && this.running) onError(code);
             });
 
-        this.proc.stdout.on("data", data => {
+        this.proc.stdout!.on("data", data => {
             const events = this._getEventData(data);
             for (let {event, eventId} of events) {
                 const stopPropagation = !!this.listener(event);
 
-                this.proc.stdin.write(`${stopPropagation ? "1" : "0"},${eventId}\n`);
+                this.proc.stdin!.write(`${stopPropagation ? "1" : "0"},${eventId}\n`);
             }
         });
 
@@ -128,7 +128,7 @@ export class MacKeyServer implements IGlobalKeyServer {
     /** Stop the Key server */
     public stop() {
         this.running = false;
-        this.proc.stdout.pause();
+        this.proc.stdout!.pause();
         this.proc.kill();
     }
 
@@ -137,23 +137,39 @@ export class MacKeyServer implements IGlobalKeyServer {
      * @param data Data from stdout
      * @returns The standardized key event data
      */
-    protected _getEventData(data: any): {event: IGlobalKeyEvent; eventId: string}[] {
+    protected _getEventData(data: Buffer): {event: IGlobalKeyEvent; eventId: string}[] {
         const sData: string = data.toString();
         const lines = sData.trim().split(/\n/);
         return lines.map(line => {
             const lineData = line.replace(/\s+/, "");
-            const arr = lineData.split(",");
-            const vKey = parseInt(arr[0]);
-            const key = MacGlobalKeyLookup[vKey];
-            const keyDown = /DOWN/.test(arr[1]);
-            const eventId = arr[2];
+
+            const [
+                mouseKeyboard,
+                downUp,
+                sKeyCode,
+                sLocationX,
+                sLocationY,
+                eventId,
+            ] = lineData.split(",");
+
+            const isMouse = mouseKeyboard === 'MOUSE';
+            const isDown = downUp === 'DOWN';
+
+            const keyCode = Number.parseInt(sKeyCode, 10);
+
+            const locationX = Number.parseFloat(sLocationX);
+            const locationY = Number.parseFloat(sLocationY);
+
+            const key = MacGlobalKeyLookup[isMouse ? (0xFFFF0000 + keyCode) : keyCode];
+
             return {
                 event: {
-                    vKey,
+                    vKey: keyCode,
                     rawKey: key,
                     name: key?.standardName,
-                    state: keyDown ? "DOWN" : "UP",
-                    scanCode: vKey,
+                    state: isDown ? "DOWN" : "UP",
+                    scanCode: keyCode,
+                    location: [ locationX, locationY ],
                     _raw: sData,
                 },
                 eventId,

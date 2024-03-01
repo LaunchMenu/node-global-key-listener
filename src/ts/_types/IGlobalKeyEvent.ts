@@ -5,12 +5,13 @@ import {IGlobalKey} from "./IGlobalKey";
  */
 export type IGlobalKeyEvent = {
     vKey: number;
-    rawKey: {
+    rawKey?: {
         _nameRaw: string;
         name: string;
     };
     name?: IGlobalKey;
     state: "DOWN" | "UP";
     scanCode: number;
+    location?: [ x: number, y: number ];
     _raw: string;
 };

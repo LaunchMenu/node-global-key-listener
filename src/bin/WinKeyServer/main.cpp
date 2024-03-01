@@ -69,6 +69,8 @@ Compilation:
 //How long to wait before timing out a key response
 int timeoutTime = 30;
 
+POINT zeroPoint { 0, 0 };
+
 /**
  * HEADERS
  */
@@ -80,8 +82,10 @@ enum KeyState
 };
 void MessageLoop();
 __declspec(dllexport) LRESULT CALLBACK KeyboardEvent(int nCode, WPARAM wParam, LPARAM lParam);
-bool haltPropogation(KBDLLHOOKSTRUCT key, KeyState keyState);
+__declspec(dllexport) LRESULT CALLBACK MouseEvent(int nCode, WPARAM wParam, LPARAM lParam);
+bool haltPropogation(bool isMouse, bool isDown, DWORD vkCode, DWORD scanCode, POINT location);
 KeyState getKeyState(WPARAM wParam);
+DWORD getMouseButtonCode(WPARAM wParam);
 void printErr(const char *str);
 std::string awaitLine();
 std::string getString();
@@ -96,6 +100,7 @@ struct data
 };
 
 HHOOK hKeyboardHook;
+HHOOK hMouseHook;
 bool bIsMetaDown = false;
 bool bIsAltDown;
 
@@ -118,12 +123,14 @@ int main(int argc, char **argv)
 
     //Hook to global keyboard events
     hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)KeyboardEvent, hInstance, 0);
+    hMouseHook = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC)MouseEvent, hInstance, 0);
 
     //Wait app is closed
     MessageLoop();
 
     //Unhook from global keyboard events
     UnhookWindowsHookEx(hKeyboardHook);
+    UnhookWindowsHookEx(hMouseHook);
 
     //Dispose the threads
     CloseHandle(timeoutThread);
@@ -147,7 +154,7 @@ __declspec(dllexport) LRESULT CALLBACK KeyboardEvent(int nCode, WPARAM wParam, L
 
         //Stop propogation if needed using stdio messaging. 1st param is casted lPARAM.
         //Returning 1 from this function will halt propogation
-        if (haltPropogation(key, ks))
+        if (haltPropogation(false, ks == down, key.vkCode, key.scanCode, zeroPoint))
         {
             //fixes issue https://github.com/LaunchMenu/node-global-key-listener/issues/3
             //TODO: maybe there is a better fix for this which doesn't involve sending arbitrary key events?
@@ -167,6 +174,30 @@ __declspec(dllexport) LRESULT CALLBACK KeyboardEvent(int nCode, WPARAM wParam, L
                 bIsAltDown = ks == down;
         }
     }
+    return CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
+}
+
+/**
+ * Callback which receives and captures low level mouse events.
+ * This callback should return non-zero result if the event is captured, otherwise return
+ * result of CallNextHookEx
+ */
+__declspec(dllexport) LRESULT CALLBACK MouseEvent(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    MOUSEHOOKSTRUCT * pMouseStruct = (MOUSEHOOKSTRUCT *)lParam;
+    KeyState ks = getKeyState(wParam);
+    DWORD vCode = getMouseButtonCode(wParam);
+
+    if (nCode >= 0 && pMouseStruct != NULL && ks && vCode)
+    {
+        //Stop propogation if needed using stdio messaging. 1st param is casted lPARAM.
+        //Returning 1 from this function will halt propogation
+        if (haltPropogation(true, ks == down, vCode, vCode, pMouseStruct->pt))
+        {
+            return 1;
+        }
+    }
+
     return CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
 }
 
@@ -195,12 +226,54 @@ KeyState getKeyState(WPARAM wParam)
         return down;
     case WM_KEYUP:
         return up;
+
     case WM_SYSKEYDOWN:
         return down;
     case WM_SYSKEYUP:
         return up;
+
+    case WM_LBUTTONDOWN:
+        return down;
+    case WM_LBUTTONUP:
+        return up;
+
+    case WM_RBUTTONDOWN:
+        return down;
+    case WM_RBUTTONUP:
+        return up;
+
+    case WM_MBUTTONDOWN:
+        return down;
+    case WM_MBUTTONUP:
+        return up;
+
     default:
         return none;
+    }
+}
+
+/**
+ * Translates wparam to VK_* key code
+ * @returns VK_LBUTTON, VK_RBUTTON, VK_MBUTTON or 0
+ */
+DWORD getMouseButtonCode(WPARAM wParam)
+{
+    switch (wParam)
+    {
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+        return VK_LBUTTON;
+
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+        return VK_RBUTTON;
+
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP:
+        return VK_MBUTTON;
+
+    default:
+        return 0;
     }
 }
 
@@ -251,10 +324,10 @@ std::string output = "";
  *  Expects "1\n" (halt propogation of event) or "0\n" (do not halt propogation of event)
  * @remark This function timeouts after  30ms and returns false in order to propogate the event to the rest of the OS.
  */
-bool haltPropogation(KBDLLHOOKSTRUCT key, KeyState keyState)
+bool haltPropogation(bool isMouse, bool isDown, DWORD vkCode, DWORD scanCode, POINT location)
 {
     curId = curId + 1;
-    printf("%i,%s,%i,%i\n", key.vkCode, (keyState == down ? "DOWN" : "UP"), key.scanCode, curId);
+    printf("%s,%s,%i,%i,%ld,%ld,%i\n", (isMouse ? "MOUSE" : "KEYBOARD"), (isDown ? "DOWN" : "UP"), vkCode, scanCode, location.x, location.y, curId);
     fflush(stdout);
 
     // Indicate when the next timeout should occur

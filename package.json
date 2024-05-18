@@ -1,6 +1,6 @@
 {
     "name": "node-global-key-listener",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "A module to listen to global key events",
     "types": "build/index.d.ts",
     "main": "build/index.js",

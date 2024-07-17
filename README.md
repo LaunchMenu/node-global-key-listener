@@ -1,3 +1,25 @@
+# ARCHIVE NOTICE
+
+## TL;DR - This project is looking for maintainers
+
+If:
+
+1. you have experience with any of the following:
+    * Node-TypeScript
+    * Keyboard hooking on Windows (current implementation in C++)
+    * Keyboard hooking on Mac (current implementation in Swift)
+    * Keyboard hooking on Linux (current X11 implementation in C++)
+ 2. Own a Windows, Mac or Linux machine.
+ 3. Are interested in maintaining an open source project (e.g. testing PRs on the system, fixing issues)
+
+Please get in touch.
+
+## Thanks & Goodbye
+
+This project was created as a result of the stability concerns for other NodeJS keyboard hooking projects, and initially for use with LaunchMenu. At the beginning we were investing heavily in [launchmenu](http://launchmenu.github.io), however unfortunately this project didn't kick off and the maintainers @TarVK and @Sancarn have moved onto bigger and better things. At this stage, it's been many years since this project has been actively maintained, and the previous stability of this project has been deteriating (see #36, #41, #34, #23). Thusly we sadly feel compelled to archive this project until new serious maintainers for this project hop on board.
+
+Thanks everyone for using this project, and we hope you get use out of the old stable versions.
+
 # node-global-key-listener
 
 ## Description

@@ -9,10 +9,11 @@ If:
     * Keyboard hooking on Windows (current implementation in C++)
     * Keyboard hooking on Mac (current implementation in Swift)
     * Keyboard hooking on Linux (current X11 implementation in C++)
+    * Publishing NPM packages
  2. Own a Windows, Mac or Linux machine.
  3. Are interested in maintaining an open source project (e.g. testing PRs on the system, fixing issues)
 
-Please [get in touch](https://github.com/LaunchMenu/node-global-key-listener/discussions/44).
+Please [apply to become a maintainer](https://github.com/LaunchMenu/NGKL-MaintainerApplications). Otherwise this repo will remain archived.
 
 ## Thanks & Goodbye
 
